@@ -16,7 +16,7 @@ skills:
     color: "#e44332"
     file: skills/todoist/skill.md
     help_url: https://todoist.com/help/articles/find-your-api-token-Jpzx9IIlB
-    credential_type: API Token
+    credential_type: API token
     
   - id: linear
     name: Linear
