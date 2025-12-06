@@ -25,6 +25,7 @@ auth:
   help_url: https://todoist.com/help/articles/find-your-api-token-Jpzx9IIlB
 
 api:
+  type: rest
   base_url: https://api.todoist.com
 ---
 

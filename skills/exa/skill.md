@@ -22,6 +22,7 @@ auth:
   help_url: https://dashboard.exa.ai/api-keys
 
 api:
+  type: rest
   base_url: https://api.exa.ai
 ---
 

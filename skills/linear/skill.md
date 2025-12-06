@@ -23,6 +23,7 @@ auth:
   help_url: https://linear.app/settings/api
 
 api:
+  type: graphql
   base_url: https://api.linear.app
 ---
 

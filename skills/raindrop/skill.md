@@ -23,6 +23,7 @@ auth:
   help_url: https://app.raindrop.io/settings/integrations
 
 api:
+  type: rest
   base_url: https://api.raindrop.io
 ---
 
