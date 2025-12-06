@@ -15,7 +15,6 @@ abilities:
     label: "Save new bookmarks"
   - id: delete_bookmarks
     label: "Delete bookmarks"
-    destructive: true
 
 auth:
   type: api_key

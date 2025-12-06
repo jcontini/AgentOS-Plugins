@@ -15,7 +15,6 @@ abilities:
     label: "Create and modify tasks"
   - id: delete_tasks
     label: "Delete tasks"
-    destructive: true
   - id: manage_projects
     label: "Manage projects"
 
