@@ -1,51 +1,23 @@
----
-id: linear
-name: Linear
-description: Issue tracking and project management
-category: productivity
-
-icon: https://cdn.simpleicons.org/linear
-color: "#5E6AD2"
-
-auth:
-  type: api_key
-  header: Authorization
-  prefix: ""
-  help_url: https://linear.app/settings/api
-
-api:
-  type: graphql
-  base_url: https://api.linear.app
----
-
 # Linear
 
 **Use for:** Project management, issue tracking, sprint planning
 
-## Quick Start
+## API Type
 
-All requests go through the Passport proxy. Auth is automatic.
+Linear uses **GraphQL**. All queries go to `graphql` endpoint.
 
-```bash
-# Get your assigned issues
-curl -s http://localhost:1111/cloud/linear/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{ viewer { assignedIssues(first: 50) { nodes { identifier title state { name } } } } }"}' | jq .
+## Common Queries
 
-# If you have multiple accounts:
-curl -s http://localhost:1111/cloud/linear/graphql \
-  -H "X-Passport-Account: work" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{ viewer { assignedIssues(first: 50) { nodes { identifier title } } } }"}' | jq .
+**Get my assigned issues:**
+```graphql
+{
+  viewer {
+    assignedIssues(first: 50) {
+      nodes { identifier title priority state { name } dueDate }
+    }
+  }
+}
 ```
-
-## API Reference
-
-**Base URL:** `http://localhost:1111/cloud/linear`
-
-Linear uses **GraphQL**. All queries go to `/graphql`.
-
-### Common Queries
 
 **Get all issues (with pagination):**
 ```graphql
@@ -66,17 +38,6 @@ Linear uses **GraphQL**. All queries go to `/graphql`.
 }
 ```
 
-**Get my assigned issues:**
-```graphql
-{
-  viewer {
-    assignedIssues(first: 50) {
-      nodes { identifier title priority state { name } dueDate }
-    }
-  }
-}
-```
-
 **Get teams:**
 ```graphql
 {
@@ -84,7 +45,7 @@ Linear uses **GraphQL**. All queries go to `/graphql`.
 }
 ```
 
-### Mutations
+## Mutations
 
 **Create issue:**
 ```graphql
@@ -128,10 +89,9 @@ mutation {
 ## Tips
 
 - **Always paginate:** Default limit is 50. Use `first: 100` and check `hasNextPage`
-- **Finding issues:** Query all issues and filter with jq, or use GraphQL filters
 - **Issue identifiers:** Format is `TEAM-123` (e.g., `DEV-42`, `ENG-100`)
 
-## Links
+## Full API Docs
 
 - [Linear GraphQL API](https://developers.linear.app/docs/graphql/working-with-the-graphql-api)
 - [GraphQL Explorer](https://studio.apollographql.com/public/Linear-API/home)

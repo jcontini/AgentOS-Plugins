@@ -1,59 +1,17 @@
----
-id: exa
-name: Exa
-description: Semantic web search
-category: search
-
-icon: https://www.google.com/s2/favicons?domain=exa.ai&sz=64
-color: "#5046E5"
-
-auth:
-  type: api_key
-  header: x-api-key
-  prefix: ""
-  help_url: https://dashboard.exa.ai/api-keys
-
-api:
-  type: rest
-  base_url: https://api.exa.ai
----
-
 # Exa
 
 **Use for:** Semantic web search, content extraction, research
 
-## Quick Start
+## Endpoints
 
-All requests go through the Passport proxy. Auth is automatic.
+| Operation | Method | Path |
+|-----------|--------|------|
+| Search | POST | `search` |
+| Extract content | POST | `contents` |
 
-```bash
-# Search the web
-curl -s http://localhost:1111/cloud/exa/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "best practices for React performance",
-    "numResults": 5,
-    "type": "auto",
-    "contents": { "text": true }
-  }' | jq '.results[] | {title, url}'
+## Search
 
-# Extract content from URLs
-curl -s http://localhost:1111/cloud/exa/contents \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urls": ["https://example.com/article"],
-    "text": true,
-    "livecrawl": "always"
-  }' | jq .
-```
-
-## API Reference
-
-**Base URL:** `http://localhost:1111/cloud/exa`
-
-### Search
-
-**POST /search** - Semantic web search
+**POST `search`**
 
 ```json
 {
@@ -82,9 +40,9 @@ curl -s http://localhost:1111/cloud/exa/contents \
 - `neural` - Semantic/meaning-based (best for niche content)
 - `keyword` - Traditional keyword matching
 
-### Extract
+## Extract Content
 
-**POST /contents** - Extract content from URLs
+**POST `contents`**
 
 ```json
 {
@@ -106,6 +64,6 @@ curl -s http://localhost:1111/cloud/exa/contents \
 - **Exa excels at semantic search** - natural language queries work great
 - **For JS-heavy sites** (Notion, React apps), content may be limited
 
-## Links
+## Full API Docs
 
-- [Exa API Docs](https://docs.exa.ai)
+https://docs.exa.ai

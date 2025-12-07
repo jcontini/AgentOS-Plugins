@@ -1,172 +1,80 @@
----
-id: todoist
-name: Todoist
-description: Personal task management
-category: productivity
-
-icon: https://cdn.simpleicons.org/todoist
-color: "#e44332"
-
-auth:
-  type: api_key
-  header: Authorization
-  prefix: "Bearer "
-  help_url: https://todoist.com/help/articles/find-your-api-token-Jpzx9IIlB
-
-api:
-  type: rest
-  base_url: https://api.todoist.com
----
-
 # Todoist
 
-**Use for:** Task management - create, list, complete, update, delete tasks and projects
+**Use for:** Personal task management - create, list, complete, update, delete tasks
 
-## Quick Start
+## Endpoints
 
-All requests go through the Passport proxy. Auth is automatic.
+| Operation | Method | Path |
+|-----------|--------|------|
+| List tasks | GET | `rest/v2/tasks` |
+| Get task | GET | `rest/v2/tasks/{id}` |
+| Create task | POST | `rest/v2/tasks` |
+| Update task | POST | `rest/v2/tasks/{id}` |
+| Complete task | POST | `rest/v2/tasks/{id}/close` |
+| Reopen task | POST | `rest/v2/tasks/{id}/reopen` |
+| Delete task | DELETE | `rest/v2/tasks/{id}` |
+| List projects | GET | `rest/v2/projects` |
+| List labels | GET | `rest/v2/labels` |
 
-```bash
-# List all tasks
-curl -s http://localhost:1111/cloud/todoist/rest/v2/tasks | jq .
+## Query Filters
 
-# If you have multiple accounts, specify which one:
-curl -s http://localhost:1111/cloud/todoist/rest/v2/tasks \
-  -H "X-Passport-Account: work"
+Add to path as query params:
+
+| Filter | Path |
+|--------|------|
+| Due today | `rest/v2/tasks?filter=today` |
+| Due this week | `rest/v2/tasks?filter=7%20days` |
+| Overdue | `rest/v2/tasks?filter=overdue` |
+| No due date | `rest/v2/tasks?filter=no%20date` |
+| By project | `rest/v2/tasks?project_id={id}` |
+| Subtasks of task | `rest/v2/tasks?parent_id={id}` |
+
+## Create Task
+
+```json
+{
+  "content": "Task name",
+  "due_string": "today",
+  "labels": ["AI"],
+  "priority": 4,
+  "project_id": "123",
+  "description": "Optional notes"
+}
 ```
 
-## API Reference
+**Fields:**
+- `content` (required): Task title
+- `due_string`: Natural language date (`today`, `tomorrow`, `next monday`, `2025-01-15`)
+- `labels`: Array of label names
+- `priority`: 1 (normal) to 4 (urgent)
+- `project_id`: Target project (cannot be changed after creation)
+- `parent_id`: Create as subtask of another task
 
-**Base URL:** `http://localhost:1111/cloud/todoist`
+## Update Task
 
-The proxy mirrors the Todoist REST API v2. Paths are identical to `https://api.todoist.com/...`
-
-## Common Operations
-
-### Tasks
-
-**List all tasks:**
-```bash
-curl -s http://localhost:1111/cloud/todoist/rest/v2/tasks | jq .
+```json
+{
+  "content": "Updated title",
+  "due_string": "tomorrow",
+  "priority": 2
+}
 ```
 
-**Get tasks due today:**
-```bash
-curl -s "http://localhost:1111/cloud/todoist/rest/v2/tasks?filter=today" | jq .
-```
+**Note:** Cannot update `project_id`. To move a task, delete and recreate it.
 
-**Get tasks due this week:**
-```bash
-curl -s "http://localhost:1111/cloud/todoist/rest/v2/tasks?filter=7%20days" | jq .
-```
+## AI Defaults
 
-**Get task by ID (with subtasks):**
-```bash
-TASK_ID="123456789"
-curl -s "http://localhost:1111/cloud/todoist/rest/v2/tasks/$TASK_ID" | jq .
-# Get subtasks
-curl -s "http://localhost:1111/cloud/todoist/rest/v2/tasks?parent_id=$TASK_ID" | jq .
-```
-
-**Create a task:**
-```bash
-curl -s -X POST http://localhost:1111/cloud/todoist/rest/v2/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Task content here",
-    "due_string": "today",
-    "labels": ["AI"]
-  }' | jq .
-```
-
-**Create task in specific project:**
-```bash
-curl -s -X POST http://localhost:1111/cloud/todoist/rest/v2/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Task content",
-    "project_id": "PROJECT_ID_HERE",
-    "due_string": "tomorrow",
-    "priority": 4,
-    "labels": ["AI"]
-  }' | jq .
-```
-
-**Update a task:**
-```bash
-TASK_ID="123456789"
-curl -s -X POST "http://localhost:1111/cloud/todoist/rest/v2/tasks/$TASK_ID" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Updated content",
-    "due_string": "next week"
-  }' | jq .
-```
-
-**Complete a task:**
-```bash
-TASK_ID="123456789"
-curl -s -X POST "http://localhost:1111/cloud/todoist/rest/v2/tasks/$TASK_ID/close"
-```
-
-**Reopen a task:**
-```bash
-TASK_ID="123456789"
-curl -s -X POST "http://localhost:1111/cloud/todoist/rest/v2/tasks/$TASK_ID/reopen"
-```
-
-**Delete a task:**
-```bash
-TASK_ID="123456789"
-curl -s -X DELETE "http://localhost:1111/cloud/todoist/rest/v2/tasks/$TASK_ID"
-```
-
-### Projects
-
-**List all projects:**
-```bash
-curl -s http://localhost:1111/cloud/todoist/rest/v2/projects | jq .
-```
-
-**Get tasks in a project:**
-```bash
-PROJECT_ID="123456789"
-curl -s "http://localhost:1111/cloud/todoist/rest/v2/tasks?project_id=$PROJECT_ID" | jq .
-```
-
-**Create a project:**
-```bash
-curl -s -X POST http://localhost:1111/cloud/todoist/rest/v2/projects \
-  -H "Content-Type: application/json" \
-  -d '{"name": "New Project"}' | jq .
-```
-
-### Labels
-
-**List all labels:**
-```bash
-curl -s http://localhost:1111/cloud/todoist/rest/v2/labels | jq .
-```
-
-## AI Task Defaults
-
-When creating tasks on behalf of the user:
-1. **Default due date:** If user doesn't specify, use `"due_string": "today"`
-2. **AI label:** Always include `"labels": ["AI"]` so user knows the task was AI-created
-3. **Project:** If user specifies a project, include `project_id` at creation (cannot be changed later)
+When creating tasks for the user:
+1. Always add `"labels": ["AI"]` so user knows task was AI-created
+2. Use `"due_string": "today"` if user doesn't specify a date
+3. Include `project_id` at creation if user specifies a project
 
 ## Important Notes
 
-- **Subtasks:** Always check for subtasks using `?parent_id=TASK_ID` when retrieving a task
-- **Moving tasks:** Cannot update `project_id` after creation. Must delete and recreate.
-- **Priority:** 1 (normal) to 4 (urgent)
-- **Due dates:** Supports natural language (`today`, `tomorrow`, `next monday`) or ISO format (`2025-01-15`)
-- **Rate limits:** ~450 requests per 15 minutes. Check `X-RateLimit-*` headers.
+- **Subtasks:** When retrieving a task, also fetch subtasks with `?parent_id={task_id}`
+- **Priority:** 1 = normal, 4 = urgent (reverse of what you might expect)
+- **Rate limits:** ~450 requests per 15 minutes
 
-## Error Handling
+## Full API Docs
 
-Passport translates errors to user-friendly messages. Common issues:
-- `needs_reauth`: Tell user to reconnect Todoist in Passport settings
-- Rate limited: Wait and retry (check `retry_after` in response)
-
-For full Todoist API docs: https://developer.todoist.com/rest/v2/
+https://developer.todoist.com/rest/v2/

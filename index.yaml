@@ -14,9 +14,18 @@ skills:
     category: productivity
     icon: https://cdn.simpleicons.org/todoist
     color: "#e44332"
-    file: skills/todoist/skill.md
-    help_url: https://todoist.com/help/articles/find-your-api-token-Jpzx9IIlB
-    credential_type: API token
+    docs: skills/todoist/skill.md
+    
+    credential:
+      type: api_key
+      label: API Token
+      help_url: https://todoist.com/help/articles/find-your-api-token-Jpzx9IIlB
+    
+    api:
+      type: rest
+      base_url: https://api.todoist.com
+      auth_header: Authorization
+      auth_prefix: "Bearer "
     
   - id: linear
     name: Linear
@@ -24,9 +33,18 @@ skills:
     category: productivity
     icon: https://cdn.simpleicons.org/linear
     color: "#5E6AD2"
-    file: skills/linear/skill.md
-    help_url: https://linear.app/settings/api
-    credential_type: API Key
+    docs: skills/linear/skill.md
+    
+    credential:
+      type: api_key
+      label: API Key
+      help_url: https://linear.app/settings/api
+    
+    api:
+      type: graphql
+      base_url: https://api.linear.app
+      auth_header: Authorization
+      auth_prefix: ""
     
   - id: exa
     name: Exa
@@ -34,9 +52,18 @@ skills:
     category: search
     icon: https://www.google.com/s2/favicons?domain=exa.ai&sz=64
     color: "#5046E5"
-    file: skills/exa/skill.md
-    help_url: https://dashboard.exa.ai/api-keys
-    credential_type: API Key
+    docs: skills/exa/skill.md
+    
+    credential:
+      type: api_key
+      label: API Key
+      help_url: https://dashboard.exa.ai/api-keys
+    
+    api:
+      type: rest
+      base_url: https://api.exa.ai
+      auth_header: x-api-key
+      auth_prefix: ""
     
   - id: raindrop
     name: Raindrop
@@ -44,9 +71,18 @@ skills:
     category: productivity
     icon: https://raindrop.io/favicon.ico
     color: "#0082FF"
-    file: skills/raindrop/skill.md
-    help_url: https://app.raindrop.io/settings/integrations
-    credential_type: Test Token
+    docs: skills/raindrop/skill.md
+    
+    credential:
+      type: api_key
+      label: Test Token
+      help_url: https://app.raindrop.io/settings/integrations
+    
+    api:
+      type: rest
+      base_url: https://api.raindrop.io
+      auth_header: Authorization
+      auth_prefix: "Bearer "
 
 # =============================================================================
 # AGENTS (MCP Clients)

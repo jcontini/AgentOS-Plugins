@@ -1,55 +1,29 @@
----
-id: raindrop
-name: Raindrop
-description: Bookmark management
-category: productivity
-
-icon: https://raindrop.io/favicon.ico
-color: "#0082FF"
-
-auth:
-  type: api_key
-  header: Authorization
-  prefix: "Bearer "
-  help_url: https://app.raindrop.io/settings/integrations
-
-api:
-  type: rest
-  base_url: https://api.raindrop.io
----
-
 # Raindrop
 
 **Use for:** Bookmark management, collections, saving links
 
-## Quick Start
+## Endpoints
 
-All requests go through the Passport proxy. Auth is automatic.
+| Operation | Method | Path |
+|-----------|--------|------|
+| List collections | GET | `rest/v1/collections` |
+| Get collection | GET | `rest/v1/collections/{id}` |
+| Create collection | POST | `rest/v1/collections` |
+| List bookmarks | GET | `rest/v1/raindrops/{collection_id}` |
+| Add bookmark | POST | `rest/v1/raindrops` |
+| Add multiple | POST | `rest/v1/raindrops/batch` |
+| Delete bookmark | DELETE | `rest/v1/raindrops/{id}` |
 
-```bash
-# List all collections
-curl -s http://localhost:1111/cloud/raindrop/rest/v1/collections | jq '.items[] | {title, _id}'
+## Special Collection IDs
 
-# Get bookmarks in a collection
-curl -s http://localhost:1111/cloud/raindrop/rest/v1/raindrops/COLLECTION_ID | jq '.items[] | {title, link}'
+| ID | Collection |
+|----|------------|
+| `0` | All bookmarks |
+| `-1` | Unsorted |
+| `-99` | Trash |
 
-# Add a bookmark
-curl -s -X POST http://localhost:1111/cloud/raindrop/rest/v1/raindrops \
-  -H "Content-Type: application/json" \
-  -d '{"link": "https://example.com", "collectionId": COLLECTION_ID}' | jq .
-```
+## Create Collection
 
-## API Reference
-
-**Base URL:** `http://localhost:1111/cloud/raindrop`
-
-### Collections
-
-**GET /rest/v1/collections** - List all collections
-
-**GET /rest/v1/collections/{id}** - Get collection by ID
-
-**POST /rest/v1/collections** - Create collection
 ```json
 {
   "title": "My Collection",
@@ -57,29 +31,28 @@ curl -s -X POST http://localhost:1111/cloud/raindrop/rest/v1/raindrops \
 }
 ```
 
-**Create nested collection:**
+**Nested collection:**
 ```json
 {
   "title": "Subfolder",
-  "parent": { "$id": PARENT_COLLECTION_ID },
+  "parent": { "$id": 12345 },
   "public": false
 }
 ```
 
-### Bookmarks (Raindrops)
+## Add Bookmark
 
-**GET /rest/v1/raindrops/{collection_id}** - List bookmarks in collection
-
-**POST /rest/v1/raindrops** - Add bookmark
 ```json
 {
   "link": "https://example.com",
   "title": "Optional custom title",
-  "collectionId": 12345
+  "collectionId": 12345,
+  "tags": ["reading", "tech"]
 }
 ```
 
-**POST /rest/v1/raindrops/batch** - Add multiple bookmarks
+## Add Multiple Bookmarks
+
 ```json
 {
   "items": [
@@ -90,35 +63,6 @@ curl -s -X POST http://localhost:1111/cloud/raindrop/rest/v1/raindrops \
 }
 ```
 
-**DELETE /rest/v1/raindrops/{id}** - Delete bookmark
+## Full API Docs
 
-### Special Collection IDs
-
-| ID | Collection |
-|----|------------|
-| `0` | All bookmarks |
-| `-1` | Unsorted |
-| `-99` | Trash |
-
-## Example Workflows
-
-**Find collection ID by name:**
-```bash
-curl -s http://localhost:1111/cloud/raindrop/rest/v1/collections | \
-  jq '.items[] | select(.title == "Research") | ._id'
-```
-
-**Save a link with tags:**
-```bash
-curl -s -X POST http://localhost:1111/cloud/raindrop/rest/v1/raindrops \
-  -H "Content-Type: application/json" \
-  -d '{
-    "link": "https://example.com/article",
-    "collectionId": 12345,
-    "tags": ["reading", "tech"]
-  }' | jq .
-```
-
-## Links
-
-- [Raindrop API Docs](https://developer.raindrop.io)
+https://developer.raindrop.io
