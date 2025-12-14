@@ -347,3 +347,22 @@ When reviewing a plugin, check:
 4. **Paths**: Uses `$PLUGIN_DIR`, `$AGENTOS_DOWNLOADS`, not hardcoded
 5. **Params**: All required params have descriptions
 6. **Docs**: Markdown body explains usage clearly
+
+## Cursor MCP Connection Issues
+
+During active plugin development, Cursor's MCP connection can get stuck or disabled. To fix:
+
+```bash
+# Toggle the MCP config to force reconnect (MUST wait 1 second between renames)
+mv ~/.cursor/mcp.json ~/.cursor/mcp.json.tmp
+sleep 1
+mv ~/.cursor/mcp.json.tmp ~/.cursor/mcp.json
+```
+
+This renames the config and back, triggering Cursor to re-read it and reconnect. Do this whenever you get "Not connected" errors.
+
+**After Rust/backend changes**: Rebuild first, then toggle:
+```bash
+pkill -f agentos  # Kill existing process
+# Then toggle as above
+```
