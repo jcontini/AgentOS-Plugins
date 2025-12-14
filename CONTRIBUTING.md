@@ -1,20 +1,18 @@
-# Contributing Skills
+# Contributing Plugins
 
-Thanks for contributing! Here's how to add a new skill.
+Thanks for contributing! Here's how to add a new plugin.
 
 ## Quick Start
 
 1. Fork this repo
-2. Create `skills/{service-name}/skill.md` (note: directory + file, not just file)
-3. Write your skill with YAML frontmatter + markdown instructions
-4. Test your skill locally (see Tips below)
+2. Create `plugins/{service-name}/plugin.md` (note: directory + file, not just file)
+3. Write your plugin with YAML frontmatter + markdown instructions
+4. Test your plugin locally (see Tips below)
 5. Submit a PR
 
-**Note:** The `index.yaml` file is auto-generated from skill frontmatter. You don't need to edit it manually.
+## Plugin File Structure
 
-## Skill File Structure
-
-Skills use one of two protocols: **shell** (local commands) or **rest/graphql** (cloud APIs).
+Plugins use one of two protocols: **shell** (local commands) or **rest/graphql** (cloud APIs).
 
 ### Shell Protocol Example
 
@@ -127,7 +125,7 @@ Document the key endpoints and operations...
 ## Protocols
 
 ### shell
-For skills that execute local commands (CLI tools, scripts, etc.).
+For plugins that execute local commands (CLI tools, scripts, etc.).
 
 **Required fields:**
 - `protocol: shell`
@@ -245,9 +243,7 @@ auth:
 
 ## Index Entry
 
-**Note:** The `index.yaml` file is auto-generated from skill frontmatter. You don't need to manually edit it.
-
-Skills are discovered by scanning `skills/{id}/skill.md` files. The frontmatter contains all metadata needed.
+Plugins are discovered by scanning `plugins/{id}/plugin.md` files. The frontmatter contains all metadata needed.
 
 ## Complete Skill Schema
 
@@ -263,12 +259,13 @@ Skills are discovered by scanning `skills/{id}/skill.md` files. The frontmatter 
 
 - `icon` — Icon URL (e.g., `"https://cdn.simpleicons.org/todoist"`)
 - `color` — Brand color hex (e.g., `"#E44332"`)
+- `platform` — Platform constraint: `macos`, `linux`, or `windows` (omit for cross-platform)
 
 ### Optional Capability Fields
 
-- `provides` — List of capabilities this skill provides (e.g., `["web-search", "url-extract"]`)
+- `provides` — List of capabilities this plugin provides (e.g., `["web-search", "url-extract"]`)
   - Available capabilities: `web-search`, `url-extract`
-  - Used by agentOS to route capability requests to appropriate skills
+  - Used by agentOS to route capability requests to appropriate plugins
 - `settings` — User-configurable settings that appear in the UI (see Settings Schema below)
 
 ### Protocol-Specific Fields
