@@ -6,11 +6,13 @@ category: productivity
 icon: https://upload.wikimedia.org/wikipedia/en/a/ac/MacOS_Contacts_icon.png
 color: "#000000"
 platform: macos
-protocol: shell
 
 requires:
   - osascript  # Pre-installed on macOS
   - sqlite3    # Pre-installed on macOS
+
+permissions:
+  - contacts
 
 actions:
   query:

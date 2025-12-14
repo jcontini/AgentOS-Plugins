@@ -5,7 +5,6 @@ description: Get video transcripts and download videos using yt-dlp
 category: media
 icon: https://cdn.simpleicons.org/youtube
 color: "#FF0000"
-protocol: shell
 
 requires:
   - name: yt-dlp

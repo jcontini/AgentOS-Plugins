@@ -6,11 +6,13 @@ category: productivity
 icon: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Apple_Calendar_%28iOS%29.svg/2560px-Apple_Calendar_%28iOS%29.svg.png
 color: "#FF3B30"
 platform: macos
-protocol: shell
 
 requires:
   - swift    # Pre-installed on macOS
   - osascript  # Pre-installed on macOS
+
+permissions:
+  - calendar
 
 actions:
   list_calendars:

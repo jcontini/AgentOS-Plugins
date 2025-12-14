@@ -6,7 +6,6 @@ category: communication
 icon: https://cdn.simpleicons.org/whatsapp
 color: "#25D366"
 platform: macos
-protocol: shell
 
 requires:
   - sqlite3  # Pre-installed on macOS

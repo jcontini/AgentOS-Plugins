@@ -5,7 +5,6 @@ description: Project management with blocking relationships, cycles, and full AP
 category: productivity
 icon: https://cdn.simpleicons.org/linear
 color: "#5E6AD2"
-protocol: shell
 
 auth:
   type: api_key

@@ -267,6 +267,46 @@ Plugins are discovered by scanning `plugins/{id}/plugin.md` files. The frontmatt
   - Available capabilities: `web-search`, `url-extract`
   - Used by agentOS to route capability requests to appropriate plugins
 - `settings` — User-configurable settings that appear in the UI (see Settings Schema below)
+- `permissions` — macOS permissions required for this plugin (see Permissions below)
+
+### Permissions
+
+Plugins that access protected macOS resources must declare required permissions. agentOS checks these on activation and guides users through granting them.
+
+```yaml
+permissions:
+  - full_disk_access   # For Messages, Mail, Safari databases
+  - contacts           # For Contacts database
+  - calendar           # For Calendar/Reminders
+  - automation:Finder  # For AppleScript control of specific apps
+```
+
+**Available permissions:**
+
+| Permission | Description | Grant Method |
+|------------|-------------|--------------|
+| `full_disk_access` | Access to ~/Library/Messages, Mail, Safari, etc. | Manual in System Settings |
+| `contacts` | Access to Contacts database | System prompt on first use |
+| `calendar` | Access to Calendar/Reminders | System prompt on first use |
+| `photos` | Access to Photos library | System prompt on first use |
+| `automation:AppName` | AppleScript control of specific app | System prompt on first use |
+
+**Example:**
+```yaml
+# iMessage plugin needs Full Disk Access
+permissions:
+  - full_disk_access
+
+# Finder plugin needs to control Finder via AppleScript
+permissions:
+  - automation:Finder
+```
+
+When a user clicks "Activate" on a plugin with permissions, agentOS will:
+1. Check if each permission is granted
+2. Show a modal explaining what's needed
+3. Guide user through granting (open System Settings or trigger system prompt)
+4. Only activate once all permissions are granted
 
 ### Protocol-Specific Fields
 

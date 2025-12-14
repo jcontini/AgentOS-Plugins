@@ -5,7 +5,6 @@ description: Personal task management - create, list, complete, update, delete t
 category: productivity
 icon: https://cdn.simpleicons.org/todoist
 color: "#E44332"
-protocol: shell
 
 auth:
   type: api_key

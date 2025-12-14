@@ -6,7 +6,6 @@ category: finance
 icon: https://cdn.jim-nielsen.com/ios/512/copilot-track-budget-money-2025-10-31.png
 color: "#00C853"
 platform: macos
-protocol: shell
 
 requires:
   - sqlite3  # Pre-installed on macOS
@@ -378,3 +377,5 @@ use-plugin(plugin: "copilot", tool: "recurring")
 - **Database:** `~/Library/Group Containers/group.com.copilot.production/database/CopilotDB.sqlite`
 - **Account names:** `~/Library/Group Containers/group.com.copilot.production/widget-data/widgets-account-*.json`
 - **Date format:** `YYYY-MM-DD HH:MM:SS.000`
+
+
