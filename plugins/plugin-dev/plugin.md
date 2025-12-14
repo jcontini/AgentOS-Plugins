@@ -8,6 +8,105 @@ color: "#10B981"
 
 auth:
   type: local
+
+requires:
+  - yq
+
+actions:
+  audit:
+    description: Audit a plugin for common issues and best practices
+    params:
+      path:
+        type: string
+        required: true
+        description: Path to the plugin.md file to audit
+    run: |
+      require_file "$PARAM_PATH"
+      
+      echo "# Plugin Audit: $PARAM_PATH"
+      echo ""
+      
+      # Extract frontmatter to temp file for yq
+      TMPYAML=$(mktemp)
+      trap "rm -f $TMPYAML" EXIT
+      sed -n '/^---$/,/^---$/p' "$PARAM_PATH" | sed '1d;$d' > "$TMPYAML"
+      
+      # Check required fields
+      echo "## Required Fields"
+      for field in id name description category; do
+        VAL=$(yq ".$field" "$TMPYAML" | grep -v '^null$')
+        if [ -n "$VAL" ]; then
+          echo "✅ $field: $VAL"
+        else
+          echo "❌ $field: MISSING"
+        fi
+      done
+      echo ""
+      
+      # Check icon format
+      echo "## Icon"
+      ICON=$(yq '.icon' "$TMPYAML" | grep -v '^null$')
+      if [ -n "$ICON" ]; then
+        if echo "$ICON" | grep -q ":"; then
+          echo "✅ Iconify format: $ICON"
+        elif echo "$ICON" | grep -q "^http"; then
+          echo "✅ URL format: $ICON"
+        else
+          echo "⚠️  Unknown icon format: $ICON"
+        fi
+      else
+        echo "⚠️  No icon defined"
+      fi
+      echo ""
+      
+      # Check for forbidden patterns
+      echo "## Error Handling"
+      FOUND_ISSUES=0
+      if grep -q '2>/dev/null' "$PARAM_PATH"; then
+        echo "❌ Found '2>/dev/null' - hides errors from activity log"
+        FOUND_ISSUES=1
+      fi
+      if grep -q '2>&-' "$PARAM_PATH"; then
+        echo "❌ Found '2>&-' - closes stderr"
+        FOUND_ISSUES=1
+      fi
+      if grep -q '&>/dev/null' "$PARAM_PATH"; then
+        echo "❌ Found '&>/dev/null' - hides all output"
+        FOUND_ISSUES=1
+      fi
+      if [ $FOUND_ISSUES -eq 0 ]; then
+        echo "✅ No forbidden error suppression patterns"
+      fi
+      echo ""
+      
+      # Check for helpers usage
+      echo "## Helpers"
+      HELPERS=$(yq '.helpers' "$TMPYAML" | grep -v '^null$')
+      if [ -n "$HELPERS" ]; then
+        echo "✅ Uses helpers block for shared logic"
+      else
+        ACTIONS=$(yq '.actions | keys | length' "$TMPYAML")
+        if [ "$ACTIONS" -gt 1 ]; then
+          echo "⚠️  Multiple actions ($ACTIONS) but no helpers block"
+        else
+          echo "ℹ️  No helpers block (may not need one)"
+        fi
+      fi
+      echo ""
+      
+      # Check actions have descriptions
+      echo "## Actions"
+      yq '.actions | keys | .[]' "$TMPYAML" | while read -r action; do
+        DESC=$(yq ".actions.$action.description" "$TMPYAML" | grep -v '^null$')
+        if [ -n "$DESC" ]; then
+          echo "✅ $action: $DESC"
+        else
+          echo "❌ $action: missing description"
+        fi
+      done
+      echo ""
+      
+      echo "✅ Audit complete"
 ---
 
 # Plugin Development Guide
@@ -248,4 +347,3 @@ When reviewing a plugin, check:
 4. **Paths**: Uses `$PLUGIN_DIR`, `$AGENTOS_DOWNLOADS`, not hardcoded
 5. **Params**: All required params have descriptions
 6. **Docs**: Markdown body explains usage clearly
-
