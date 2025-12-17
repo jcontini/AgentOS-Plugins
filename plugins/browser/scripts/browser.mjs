@@ -18,7 +18,7 @@ import { chromium } from 'playwright';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -258,11 +258,30 @@ async function getBrowserAndPage(sessionIdParam, urlParam) {
 }
 
 /**
- * Output a line of JSON to stdout and flush immediately.
- * Used for streaming actions to the parent AgentOS process.
+ * Execute input actions via AgentOS binary (enigo).
+ * This performs real OS-level mouse/keyboard input visible to screen recorders.
+ */
+function executeInputActions(actions) {
+  // Find AgentOS binary - check env var first, then common paths
+  const agentOsBin = process.env.AGENTOS_BIN 
+    || '/Users/joe/dev/agentos/src-tauri/target/release/agentos';
+  
+  // Escape single quotes in JSON for shell
+  const actionsJson = JSON.stringify(actions).replace(/'/g, "'\\''");
+  const cmd = `'${agentOsBin}' input --actions '${actionsJson}'`;
+  
+  try {
+    execSync(cmd, { stdio: 'pipe' });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Output a line of JSON to stdout (legacy streaming, kept for status messages).
  */
 function streamAction(data) {
-  // Write JSON line and flush
   process.stdout.write(JSON.stringify(data) + '\n');
 }
 
@@ -280,9 +299,11 @@ const networkErrors = [];
  * @returns {Promise<{screenX: number, screenY: number} | {error: string}>}
  */
 async function getScreenCoordinates(page, selector, anchor = 'center') {
+  // Use Playwright locator - supports text=, CSS, XPath, etc.
+  const element = page.locator(selector).first();
+  
   // First ensure element is in view
   try {
-    const element = page.locator(selector).first();
     await element.scrollIntoViewIfNeeded({ timeout: 5000 });
   } catch (e) {
     return { error: `Element not found or not scrollable: ${selector}` };
@@ -291,67 +312,58 @@ async function getScreenCoordinates(page, selector, anchor = 'center') {
   // Small delay to let scroll settle
   await page.waitForTimeout(100);
 
-  // Get screen coordinates via JavaScript
-  const coords = await page.evaluate(({ sel, anchor }) => {
-    const el = document.querySelector(sel);
-    if (!el) return { error: 'Element not found' };
+  // Get bounding box via Playwright (works with any selector type)
+  const box = await element.boundingBox();
+  if (!box) {
+    return { error: 'Element not visible or has no size' };
+  }
 
-    const rect = el.getBoundingClientRect();
-    
-    // Check if element is visible
-    if (rect.width === 0 || rect.height === 0) {
-      return { error: 'Element has no size (hidden or collapsed)' };
-    }
-
-    // Window position on screen
-    const windowX = window.screenX;
-    const windowY = window.screenY;
-
-    // Browser chrome offset (toolbars, tabs, bookmark bar, etc.)
-    // outerHeight - innerHeight = total vertical chrome (usually all at top)
-    const chromeHeight = window.outerHeight - window.innerHeight;
-    // Horizontal chrome is usually minimal (window frame)
-    const chromeWidth = (window.outerWidth - window.innerWidth) / 2;
-
-    // Calculate anchor point within element
-    let offsetX, offsetY;
-    switch (anchor) {
-      case 'top-left':
-        offsetX = 5;
-        offsetY = 5;
-        break;
-      case 'top-right':
-        offsetX = rect.width - 5;
-        offsetY = 5;
-        break;
-      case 'bottom-left':
-        offsetX = 5;
-        offsetY = rect.height - 5;
-        break;
-      case 'bottom-right':
-        offsetX = rect.width - 5;
-        offsetY = rect.height - 5;
-        break;
-      case 'center':
-      default:
-        offsetX = rect.width / 2;
-        offsetY = rect.height / 2;
-    }
-
+  // Get window position and chrome offset via JavaScript
+  const windowInfo = await page.evaluate(() => {
     return {
-      screenX: Math.round(windowX + chromeWidth + rect.x + offsetX),
-      screenY: Math.round(windowY + chromeHeight + rect.y + offsetY),
-      // Include debug info
-      debug: {
-        windowPos: { x: windowX, y: windowY },
-        chrome: { width: chromeWidth, height: chromeHeight },
-        elementRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-        anchor: { x: offsetX, y: offsetY }
-      }
+      windowX: window.screenX,
+      windowY: window.screenY,
+      chromeHeight: window.outerHeight - window.innerHeight,
+      chromeWidth: (window.outerWidth - window.innerWidth) / 2,
     };
-  }, { sel: selector, anchor });
+  });
 
-  return coords;
+  // Calculate anchor point within element
+  let offsetX, offsetY;
+  switch (anchor) {
+    case 'top-left':
+      offsetX = 5;
+      offsetY = 5;
+      break;
+    case 'top-right':
+      offsetX = box.width - 5;
+      offsetY = 5;
+      break;
+    case 'bottom-left':
+      offsetX = 5;
+      offsetY = box.height - 5;
+      break;
+    case 'bottom-right':
+      offsetX = box.width - 5;
+      offsetY = box.height - 5;
+      break;
+    case 'center':
+    default:
+      offsetX = box.width / 2;
+      offsetY = box.height / 2;
+  }
+
+  return {
+    screenX: Math.round(windowInfo.windowX + windowInfo.chromeWidth + box.x + offsetX),
+    screenY: Math.round(windowInfo.windowY + windowInfo.chromeHeight + box.y + offsetY),
+    // Include debug info
+    debug: {
+      windowPos: { x: windowInfo.windowX, y: windowInfo.windowY },
+      chrome: { width: windowInfo.chromeWidth, height: windowInfo.chromeHeight },
+      elementBox: { x: box.x, y: box.y, width: box.width, height: box.height },
+      anchor: { x: offsetX, y: offsetY }
+    }
+  };
 }
 
 /**
@@ -534,9 +546,12 @@ async function processFlow(page, actions) {
           throw new Error(`Unknown flow action: ${actionType}`);
       }
       
-      // Stream input actions to AgentOS for immediate execution
+      // Execute input actions via AgentOS binary (enigo)
       if (inputActions.length > 0) {
-        streamAction({ type: 'input', actions: inputActions });
+        const result = executeInputActions(inputActions);
+        if (!result.success) {
+          throw new Error(`Input execution failed: ${result.error}`);
+        }
         inputActionsExecuted += inputActions.length;
         
         // Wait for the estimated duration so page can react before next action

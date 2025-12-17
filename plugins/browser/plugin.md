@@ -255,25 +255,38 @@ actions:
   run_flow:
     description: |
       Execute a sequence of browser actions with OS-level mouse/keyboard input.
-      Perfect for recording demo videos - all interactions are visible to screen recorders.
-      Actions are executed sequentially. Use CSS selectors to target elements.
+      Perfect for recording demo videos - all interactions are visible to screen recorders like Screen Studio.
+      Uses real mouse movements and clicks via enigo (Rust).
+      
+      BEST PRACTICES:
+      - Use wait_for before click to ensure element is loaded (not wait with ms)
+      - Use role selectors for buttons: role=button[name="Submit"]
+      - Use text= selectors for links: text=Click here
+      - Don't add explicit waits - wait_for handles timing automatically
+      - Window position is tracked dynamically - works even if user moves browser
     params:
+      session_id:
+        type: string
+        description: Session ID to use existing browser (from start_session)
       actions:
         type: array
         required: true
         description: |
-          Array of actions to perform. Each action has a type and parameters:
+          Array of actions. Use wait_for before clicks to ensure elements are ready:
           - goto: {action: "goto", url: "https://..."}
-          - wait: {action: "wait", ms: 1000}
-          - wait_for: {action: "wait_for", selector: ".loaded", timeout_ms: 5000}
-          - click: {action: "click", selector: "button.submit", duration_ms: 500}
-          - double_click: {action: "double_click", selector: ".item"}
-          - hover: {action: "hover", selector: ".menu", hover_ms: 500}
-          - type: {action: "type", selector: "input[name='email']", text: "hello@example.com", delay_ms: 50}
+          - wait_for: {action: "wait_for", selector: "text=Button"} (preferred over wait)
+          - wait: {action: "wait", ms: 1000} (only if truly needed)
+          - click: {action: "click", selector: "text=Submit"} or selector: "role=button[name='Yes']"
+          - type: {action: "type", selector: "input", text: "hello@example.com"}
           - scroll: {action: "scroll", direction: "down", amount: 300}
-          - scroll_to: {action: "scroll_to", selector: "#section"}
           - key: {action: "key", key: "Enter"}
           - key_combo: {action: "key_combo", keys: ["cmd", "shift", "p"]}
+          
+          Selector tips:
+          - text=Click me (element containing text)
+          - role=button[name="Yes"] (accessible button by name - best for buttons)
+          - input (simple tag)
+          - #id or .class (CSS)
     run: browser
 ---
 
