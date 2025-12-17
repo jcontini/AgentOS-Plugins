@@ -6,8 +6,7 @@ category: media
 icon: https://cdn.simpleicons.org/youtube
 color: "#FF0000"
 
-triggers:
-  - asks for video transcripts or to download videos
+topics: [video transcripts, YouTube, video downloads]
 
 requires:
   - name: yt-dlp

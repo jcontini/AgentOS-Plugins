@@ -7,8 +7,7 @@ icon: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Apple_Calendar_%
 color: "#FF3B30"
 platform: macos
 
-triggers:
-  - asks about calendar, schedule, meetings, or availability
+topics: [calendar, schedule, meetings, availability]
 
 requires:
   - swift    # Pre-installed on macOS

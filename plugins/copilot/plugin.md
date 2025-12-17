@@ -6,8 +6,7 @@ category: finance
 icon: https://cdn.jim-nielsen.com/ios/512/copilot-track-budget-money-2025-10-31.png
 color: "#00C853"
 
-triggers:
-  - asks about finances, transactions, or budget
+topics: [finances, transactions, budget]
 platform: macos
 
 requires:

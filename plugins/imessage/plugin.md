@@ -7,8 +7,7 @@ icon: https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/IMessage_logo.sv
 color: "#34C759"
 platform: macos
 
-triggers:
-  - asks about text messages, iMessages, or SMS
+topics: [text messages, iMessages, SMS]
 
 requires:
   - sqlite3  # Pre-installed on macOS

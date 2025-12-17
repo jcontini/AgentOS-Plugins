@@ -6,8 +6,7 @@ category: productivity
 icon: https://cdn.simpleicons.org/linear
 color: "#5E6AD2"
 
-triggers:
-  - asks about issues, tickets, or project management
+topics: [issues, tickets, project management]
 
 auth:
   type: api_key

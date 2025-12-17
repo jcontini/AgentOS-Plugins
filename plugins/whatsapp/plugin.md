@@ -6,8 +6,7 @@ category: communication
 icon: https://cdn.simpleicons.org/whatsapp
 color: "#25D366"
 
-triggers:
-  - asks about WhatsApp messages or conversations
+topics: [WhatsApp, WhatsApp messages]
 platform: macos
 
 requires:

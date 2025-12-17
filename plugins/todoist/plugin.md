@@ -6,8 +6,7 @@ category: productivity
 icon: https://cdn.simpleicons.org/todoist
 color: "#E44332"
 
-triggers:
-  - asks about tasks, to-dos, or reminders
+topics: [tasks, to-dos, reminders]
 
 auth:
   type: api_key

@@ -6,8 +6,7 @@ category: productivity
 icon: https://upload.wikimedia.org/wikipedia/commons/b/b9/Finder_Icon_macOS_Tahoe.png
 color: "#1C8BF4"
 
-triggers:
-  - asks to open apps, files, URLs, or navigate folders
+topics: [open apps, open files, open URLs, file navigation]
 platform: macos
 requires:
   - name: tree

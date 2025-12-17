@@ -6,8 +6,7 @@ category: productivity
 icon: material-symbols:history
 color: "#8B5CF6"
 
-triggers:
-  - asks about Cursor, Claude, Raycast, or ChatGPT conversation history
+topics: [conversation history, Cursor chats, Claude chats, ChatGPT history]
 
 auth:
   type: local
