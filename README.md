@@ -4,43 +4,6 @@ Open-source plugin definitions for [agentOS](https://github.com/jcontini/agentos
 
 Plugins teach AI agents how to use your apps and APIs — they're markdown files with configuration and documentation.
 
-## What's a Plugin?
-
-A plugin is a markdown file (`plugins/{id}/plugin.md`) with:
-- **YAML frontmatter** — metadata, auth config, action definitions
-- **Markdown body** — instructions the AI reads to use the plugin
-
-```yaml
----
-id: todoist
-name: Todoist
-description: Personal task management
-tags: [tasks, productivity]
-icon: https://cdn.simpleicons.org/todoist
-
-auth:
-  type: api_key
-  header: Authorization
-  prefix: "Bearer "
-
-actions:
-  get_tasks:
-    readonly: true
-    api:
-      method: GET
-      url: https://api.todoist.com/rest/v2/tasks
-  
-  create_task:
-    api:
-      method: POST
-      url: https://api.todoist.com/rest/v2/tasks
----
-
-# Todoist
-
-Instructions for AI go here...
-```
-
 ## Core Concepts
 
 ```mermaid
@@ -117,6 +80,43 @@ Naming convention: `get_*`, `create_*`, `update_*`, `delete_*`, `search`
 ### Accounts
 
 All plugins support multiple accounts (Personal, Work, etc.) at the AgentOS level.
+
+## What's a Plugin?
+
+A plugin is a markdown file (`plugins/{id}/plugin.md`) with:
+- **YAML frontmatter** — metadata, auth config, action definitions
+- **Markdown body** — instructions the AI reads to use the plugin
+
+```yaml
+---
+id: todoist
+name: Todoist
+description: Personal task management
+tags: [tasks, productivity]
+icon: https://cdn.simpleicons.org/todoist
+
+auth:
+  type: api_key
+  header: Authorization
+  prefix: "Bearer "
+
+actions:
+  get_tasks:
+    readonly: true
+    api:
+      method: GET
+      url: https://api.todoist.com/rest/v2/tasks
+  
+  create_task:
+    api:
+      method: POST
+      url: https://api.todoist.com/rest/v2/tasks
+---
+
+# Todoist
+
+Instructions for AI go here...
+```
 
 ## Using Plugins
 
