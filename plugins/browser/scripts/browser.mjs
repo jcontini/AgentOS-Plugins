@@ -512,10 +512,27 @@ async function playStepBrowserMode(page, step) {
       break;
     }
     
-    case 'keyDown':
-      await page.keyboard.down(step.key);
+    case 'keyDown': {
+      // Handle modifier combos like "Meta+Enter", "Control+Shift+A"
+      if (step.key.includes('+')) {
+        const parts = step.key.split('+');
+        const mainKey = parts.pop();
+        // Hold down all modifiers
+        for (const mod of parts) {
+          await page.keyboard.down(mod);
+        }
+        // Press the main key
+        await page.keyboard.press(mainKey);
+        // Release all modifiers
+        for (const mod of parts.reverse()) {
+          await page.keyboard.up(mod);
+        }
+      } else {
+        await page.keyboard.down(step.key);
+      }
       break;
-      
+    }
+
     case 'keyUp':
       await page.keyboard.up(step.key);
       break;
