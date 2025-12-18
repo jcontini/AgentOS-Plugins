@@ -43,6 +43,14 @@ settings:
     description: Browser locale (e.g. en-US, es-ES, pt-BR)
     type: string
     default: "en-US"
+  color_scheme:
+    label: Color Scheme
+    description: Browser color scheme preference (affects sites that support dark mode)
+    type: enum
+    default: "light"
+    options:
+      - light
+      - dark
   playback_mode:
     label: Playback Mode
     description: "browser = fast Playwright automation, native = OS-level input (visible to screen recorders)"

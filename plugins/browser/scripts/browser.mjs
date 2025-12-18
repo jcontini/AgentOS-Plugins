@@ -40,6 +40,7 @@ const slowMo = parseInt(process.env.SETTING_SLOW_MO || '0', 10);
 const timeout = parseInt(process.env.SETTING_TIMEOUT || '30', 10) * 1000;
 const locale = process.env.SETTING_LOCALE || 'en-US';
 const userAgentSetting = process.env.SETTING_USER_AGENT || 'chrome';
+const colorScheme = process.env.SETTING_COLOR_SCHEME || 'light';
 // Playback mode: param overrides setting
 const playbackMode = process.env.PARAM_PLAYBACK_MODE || process.env.SETTING_PLAYBACK_MODE || 'native';
 
@@ -97,13 +98,16 @@ async function startSession(initialUrl, startRecording = false) {
   const daemonScript = join(__dirname, 'browser-daemon.mjs');
   
   // Spawn daemon as detached background process
-  // Args: session-id [url] [--recording]
+  // Args: session-id [url] [--recording] [--color-scheme=light|dark]
   const args = [daemonScript, newSessionId];
   if (initialUrl) {
     args.push(initialUrl);
   }
   if (startRecording) {
     args.push('--recording');
+  }
+  if (colorScheme) {
+    args.push(`--color-scheme=${colorScheme}`);
   }
   
   const daemon = spawn('node', args, {
@@ -244,7 +248,8 @@ async function getBrowserAndPage(sessionIdParam, urlParam) {
         const context = await browser.newContext({
           viewport: { width: 1280, height: 800 },
           userAgent,
-          locale
+          locale,
+          colorScheme
         });
         page = await context.newPage();
       }
@@ -265,7 +270,8 @@ async function getBrowserAndPage(sessionIdParam, urlParam) {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
       userAgent,
-      locale
+      locale,
+      colorScheme
     });
     const page = await context.newPage();
     

@@ -25,12 +25,14 @@ const __dirname = dirname(__filename);
 const recordingsDir = join(homedir(), '.agentos', 'recordings');
 
 const sessionId = process.argv[2];
-// Parse args: session-id [url] [--recording]
+// Parse args: session-id [url] [--recording] [--color-scheme=light|dark]
 const hasRecordingFlag = process.argv.includes('--recording');
+const colorSchemeArg = process.argv.find(arg => arg.startsWith('--color-scheme='));
+const colorScheme = colorSchemeArg ? colorSchemeArg.split('=')[1] : 'light';
 const initialUrl = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : null;
 
 if (!sessionId) {
-  console.error('Usage: node browser-daemon.mjs <session-id> [initial-url] [--recording]');
+  console.error('Usage: node browser-daemon.mjs <session-id> [initial-url] [--recording] [--color-scheme=light|dark]');
   process.exit(1);
 }
 
@@ -201,6 +203,7 @@ async function main() {
   // Create a context and page
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
+    colorScheme,
   });
   
   // Expose function for recording - must be done before any page is created
