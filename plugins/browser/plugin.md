@@ -43,6 +43,14 @@ settings:
     description: Browser locale (e.g. en-US, es-ES, pt-BR)
     type: string
     default: "en-US"
+  playback_mode:
+    label: Playback Mode
+    description: "browser = fast Playwright automation, native = OS-level input (visible to screen recorders)"
+    type: enum
+    default: "native"
+    options:
+      - browser
+      - native
 
 requires:
   - name: node
@@ -77,6 +85,10 @@ actions:
       url:
         type: string
         description: Optional initial URL to navigate to
+      recording:
+        type: boolean
+        default: "false"
+        description: Start recording user interactions immediately
     run: browser
 
   end_session:
@@ -251,41 +263,69 @@ actions:
         description: Time to wait after page load (ms)
     run: browser
 
-  run_flow:
+  play_flow:
     description: |
-      Execute a sequence of browser actions with OS-level mouse/keyboard input.
-      Perfect for recording demo videos - all interactions are visible to screen recorders like Screen Studio.
-      Uses real mouse movements and clicks via enigo (Rust).
+      Play back a recorded browser flow. Accepts Chrome DevTools Recorder JSON format.
       
-      BEST PRACTICES:
-      - Use wait_for before click to ensure element is loaded (not wait with ms)
-      - Use role selectors for buttons: role=button[name="Submit"]
-      - Use text= selectors for links: text=Click here
-      - Don't add explicit waits - wait_for handles timing automatically
-      - Window position is tracked dynamically - works even if user moves browser
+      You can record flows using Chrome DevTools Recorder and export as JSON, or use record_flow action.
     params:
       session_id:
         type: string
         description: Session ID to use existing browser (from start_session)
-      actions:
-        type: array
+      recording:
+        type: object
         required: true
         description: |
-          Array of actions. Use wait_for before clicks to ensure elements are ready:
-          - goto: {action: "goto", url: "https://..."}
-          - wait_for: {action: "wait_for", selector: "text=Button"} (preferred over wait)
-          - wait: {action: "wait", ms: 1000} (only if truly needed)
-          - click: {action: "click", selector: "text=Submit"} or selector: "role=button[name='Yes']"
-          - type: {action: "type", selector: "input", text: "hello@example.com"}
-          - scroll: {action: "scroll", direction: "down", amount: 300}
-          - key: {action: "key", key: "Enter"}
-          - key_combo: {action: "key_combo", keys: ["cmd", "shift", "p"]}
+          Chrome DevTools Recorder JSON with title and steps array. Example:
+          {
+            "title": "My Flow",
+            "steps": [
+              {"type": "navigate", "url": "https://example.com"},
+              {"type": "click", "selectors": [["text=Login"]], "offsetX": 50, "offsetY": 12},
+              {"type": "change", "selectors": [["input[name='email']"]], "value": "user@example.com"},
+              {"type": "keyDown", "key": "Enter"}
+            ]
+          }
           
-          Selector tips:
-          - text=Click me (element containing text)
-          - role=button[name="Yes"] (accessible button by name - best for buttons)
-          - input (simple tag)
-          - #id or .class (CSS)
+          Supported step types: navigate, click, doubleClick, change, keyDown, keyUp, scroll, hover, waitForElement
+      playback_mode:
+        type: enum
+        description: "Override playback mode: browser = fast Playwright automation, native = OS-level input for screen recordings"
+        options:
+          - browser
+          - native
+    run: browser
+
+  record_flow:
+    description: |
+      Start recording user interactions on a browser session.
+      Returns immediately - user can then interact with the browser.
+      Use stop_recording to get the recorded flow as Chrome DevTools JSON.
+    params:
+      session_id:
+        type: string
+        required: true
+        description: Session ID to record on (from start_session)
+    run: browser
+
+  stop_recording:
+    description: Stop recording and return the captured flow as Chrome DevTools Recorder JSON.
+    params:
+      session_id:
+        type: string
+        required: true
+        description: Session ID to stop recording
+    run: browser
+
+  get_recording:
+    description: |
+      Get a recording by session ID. Works even if browser was closed (recording auto-saved).
+      Returns Chrome DevTools Recorder JSON format.
+    params:
+      session_id:
+        type: string
+        required: true
+        description: Session ID of the recording
     run: browser
 ---
 

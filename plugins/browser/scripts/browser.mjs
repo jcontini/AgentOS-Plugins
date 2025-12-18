@@ -5,8 +5,10 @@
  * Captures console logs, errors, and network activity for debugging.
  * Screenshots are optional and expensive (tokens) - use sparingly.
  * 
- * For run_flow: Resolves element selectors to screen coordinates,
- * then executes OS-level input actions via AgentOS for screen recording.
+ * For play_flow: Plays back Chrome DevTools Recorder JSON format.
+ * - playback_mode: "browser" uses Playwright native, "native" uses OS-level input (enigo)
+ * 
+ * For record_flow: Records user interactions as Chrome DevTools JSON.
  * 
  * Session Management:
  * - start_session: Launch browser server, keep it running
@@ -17,7 +19,7 @@
 import { chromium } from 'playwright';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { spawn, execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -29,7 +31,7 @@ const url = process.env.PARAM_URL;
 const selector = process.env.PARAM_SELECTOR;
 const text = process.env.PARAM_TEXT;
 const script = process.env.PARAM_SCRIPT;
-const actionsJson = process.env.PARAM_ACTIONS;
+const recordingJson = process.env.PARAM_RECORDING;
 const sessionId = process.env.PARAM_SESSION_ID;
 const waitMs = parseInt(process.env.PARAM_WAIT_MS || '1000', 10);
 const includeScreenshot = process.env.PARAM_SCREENSHOT === 'true';
@@ -38,6 +40,11 @@ const slowMo = parseInt(process.env.SETTING_SLOW_MO || '0', 10);
 const timeout = parseInt(process.env.SETTING_TIMEOUT || '30', 10) * 1000;
 const locale = process.env.SETTING_LOCALE || 'en-US';
 const userAgentSetting = process.env.SETTING_USER_AGENT || 'chrome';
+// Playback mode: param overrides setting
+const playbackMode = process.env.PARAM_PLAYBACK_MODE || process.env.SETTING_PLAYBACK_MODE || 'native';
+
+// Recordings storage
+const recordingsDir = join(homedir(), '.agentos', 'recordings');
 
 const userAgents = {
   chrome: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -83,16 +90,20 @@ function generateSessionId() {
  * Start a persistent browser session.
  * Spawns a daemon process that keeps the browser alive.
  */
-async function startSession(initialUrl) {
+async function startSession(initialUrl, startRecording = false) {
   const newSessionId = generateSessionId();
   
   // Path to daemon script
   const daemonScript = join(__dirname, 'browser-daemon.mjs');
   
   // Spawn daemon as detached background process
+  // Args: session-id [url] [--recording]
   const args = [daemonScript, newSessionId];
   if (initialUrl) {
     args.push(initialUrl);
+  }
+  if (startRecording) {
+    args.push('--recording');
   }
   
   const daemon = spawn('node', args, {
@@ -123,13 +134,22 @@ async function startSession(initialUrl) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
+      let message = initialUrl 
+        ? `Browser session started on ${initialUrl}.`
+        : `Browser session started.`;
+      
+      if (startRecording) {
+        message += ` Recording is active - interact with the browser, then call stop_recording.`;
+      } else {
+        message += ` Use session_id "${newSessionId}" for subsequent actions.`;
+      }
+      
       return {
         success: true,
         session_id: newSessionId,
         cdp_endpoint: session.cdpEndpoint,
-        message: initialUrl 
-          ? `Browser session started on ${initialUrl}. Use session_id "${newSessionId}" for subsequent actions.`
-          : `Browser session started. Use session_id "${newSessionId}" in subsequent actions.`,
+        recording: startRecording,
+        message,
       };
     }
   }
@@ -240,7 +260,7 @@ async function getBrowserAndPage(sessionIdParam, urlParam) {
     }
   } else {
     // Launch new browser (non-session mode)
-    const useHeadless = action === 'run_flow' ? false : headless;
+    const useHeadless = action === 'play_flow' ? false : headless;
     const browser = await chromium.launch({ headless: useHeadless, slowMo });
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
@@ -394,207 +414,355 @@ function estimateInputDuration(inputActions) {
 }
 
 /**
- * Process a flow of actions with streaming execution.
- * Each action's input commands are streamed to AgentOS for immediate execution.
- * This allows the browser to stay open and page state to update between actions.
+ * Get a working selector from Chrome DevTools format selectors array.
+ * Tries each selector in order until one works.
+ * Chrome DevTools format: [["aria/Submit"], ["#submit-btn"], ["text=Submit"], ["xpath=//button"]]
  */
-async function processFlow(page, actions) {
-  let actionsProcessed = 0;
-  let inputActionsExecuted = 0;
+function getSelector(step) {
+  if (!step.selectors || step.selectors.length === 0) {
+    throw new Error('No selectors provided in step');
+  }
+  // Return first selector from first selector array
+  // Playwright natively supports: text=, xpath=, css= prefixes
+  return step.selectors[0][0];
+}
+
+/**
+ * Try multiple selectors until one works.
+ * Returns the first selector that matches a visible element.
+ */
+async function findWorkingSelector(page, step, timeout = 3000) {
+  if (!step.selectors || step.selectors.length === 0) {
+    throw new Error('No selectors provided in step');
+  }
   
-  for (let i = 0; i < actions.length; i++) {
-    const action = actions[i];
-    const actionType = action.action;
+  for (const selectorArray of step.selectors) {
+    const selector = selectorArray[0];
+    try {
+      const locator = page.locator(selector).first();
+      await locator.waitFor({ state: 'visible', timeout });
+      return selector;
+    } catch (e) {
+      // Try next selector
+      continue;
+    }
+  }
+  
+  // If none worked, return the first one (will likely fail with a clear error)
+  return step.selectors[0][0];
+}
+
+/**
+ * Play a single step in browser mode (Playwright native).
+ */
+async function playStepBrowserMode(page, step) {
+  const actionTimeout = 5000; // 5 second timeout for actions
+  
+  switch (step.type) {
+    case 'setViewport':
+      await page.setViewportSize({ width: step.width, height: step.height });
+      break;
+      
+    case 'navigate':
+      await page.goto(step.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(500);
+      break;
+      
+    case 'click': {
+      // Try multiple selectors until one works
+      const selector = await findWorkingSelector(page, step, actionTimeout);
+      const locator = page.locator(selector).first();
+      
+      // Wait for element to be visible first (like the old wait_for + click pattern)
+      await locator.waitFor({ state: 'visible', timeout: actionTimeout });
+      
+      const options = { timeout: actionTimeout };
+      if (step.offsetX !== undefined && step.offsetY !== undefined) {
+        options.position = { x: step.offsetX, y: step.offsetY };
+      }
+      if (step.button === 'secondary') {
+        options.button = 'right';
+      }
+      await locator.click(options);
+      break;
+    }
+    
+    case 'doubleClick': {
+      const locator = page.locator(getSelector(step));
+      await locator.dblclick();
+      break;
+    }
+    
+    case 'change': {
+      const locator = page.locator(getSelector(step));
+      await locator.fill(step.value);
+      break;
+    }
+    
+    case 'keyDown':
+      await page.keyboard.down(step.key);
+      break;
+      
+    case 'keyUp':
+      await page.keyboard.up(step.key);
+      break;
+      
+    case 'scroll':
+      if (step.selectors) {
+        await page.locator(getSelector(step)).scrollIntoViewIfNeeded();
+      } else {
+        await page.evaluate(({x, y}) => window.scrollTo(x, y), { x: step.x || 0, y: step.y || 0 });
+      }
+      break;
+      
+    case 'hover': {
+      const locator = page.locator(getSelector(step));
+      await locator.hover();
+      break;
+    }
+    
+    case 'waitForElement': {
+      const locator = page.locator(getSelector(step));
+      await locator.waitFor({ 
+        state: step.visible ? 'visible' : 'attached',
+        timeout: step.timeout || 10000
+      });
+      break;
+    }
+    
+    case 'waitForExpression':
+      await page.waitForFunction(step.expression, { timeout: step.timeout || 10000 });
+      break;
+      
+    case 'close':
+      // Skip close in our context - session management handles this
+      break;
+      
+    default:
+      console.error(`Unknown step type: ${step.type}, skipping`);
+  }
+}
+
+/**
+ * Play a single step in native mode (OS-level input via enigo).
+ */
+async function playStepNativeMode(page, step) {
+  switch (step.type) {
+    case 'setViewport':
+      await page.setViewportSize({ width: step.width, height: step.height });
+      break;
+      
+    case 'navigate':
+      await page.goto(step.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(500);
+      break;
+      
+    case 'click': {
+      const selector = getSelector(step);
+      const coords = await getScreenCoordinates(page, selector, 'center');
+      if (coords.error) {
+        throw new Error(`Failed to get coordinates for ${selector}: ${coords.error}`);
+      }
+      const inputActions = [
+        { input: 'move', x: coords.screenX, y: coords.screenY, duration_ms: 500, easing: 'ease_out' },
+        { input: 'wait', ms: 50 },
+        { input: 'click', button: step.button === 'secondary' ? 'right' : 'left' }
+      ];
+      executeInputActions(inputActions);
+      await page.waitForTimeout(600);
+      break;
+    }
+    
+    case 'doubleClick': {
+      const selector = getSelector(step);
+      const coords = await getScreenCoordinates(page, selector, 'center');
+      if (coords.error) {
+        throw new Error(`Failed to get coordinates for ${selector}: ${coords.error}`);
+      }
+      const inputActions = [
+        { input: 'move', x: coords.screenX, y: coords.screenY, duration_ms: 500, easing: 'ease_out' },
+        { input: 'wait', ms: 50 },
+        { input: 'double_click', button: 'left' }
+      ];
+      executeInputActions(inputActions);
+      await page.waitForTimeout(600);
+      break;
+    }
+    
+    case 'change': {
+      const selector = getSelector(step);
+      const coords = await getScreenCoordinates(page, selector, 'center');
+      if (coords.error) {
+        throw new Error(`Failed to get coordinates for ${selector}: ${coords.error}`);
+      }
+      const inputActions = [
+        { input: 'move', x: coords.screenX, y: coords.screenY, duration_ms: 300, easing: 'ease_out' },
+        { input: 'wait', ms: 50 },
+        { input: 'click', button: 'left' },
+        { input: 'wait', ms: 100 },
+        { input: 'key_combo', keys: ['cmd', 'a'] }, // Select all first
+        { input: 'wait', ms: 50 },
+        { input: 'type', text: step.value, delay_ms: 50 }
+      ];
+      executeInputActions(inputActions);
+      const typingTime = (step.value?.length || 0) * 50 + 500;
+      await page.waitForTimeout(typingTime);
+      break;
+    }
+    
+    case 'keyDown':
+      executeInputActions([{ input: 'key', key: step.key }]);
+      await page.waitForTimeout(100);
+      break;
+      
+    case 'keyUp':
+      // Native mode combines keyDown/keyUp, so we skip keyUp
+      break;
+      
+    case 'scroll':
+      if (step.selectors) {
+        await page.locator(getSelector(step)).scrollIntoViewIfNeeded();
+      } else {
+        executeInputActions([{ input: 'scroll', delta_x: 0, delta_y: step.y || 0 }]);
+      }
+      await page.waitForTimeout(300);
+      break;
+      
+    case 'hover': {
+      const selector = getSelector(step);
+      const coords = await getScreenCoordinates(page, selector, 'center');
+      if (coords.error) {
+        throw new Error(`Failed to get coordinates for ${selector}: ${coords.error}`);
+      }
+      executeInputActions([
+        { input: 'move', x: coords.screenX, y: coords.screenY, duration_ms: 500, easing: 'ease_out' }
+      ]);
+      await page.waitForTimeout(600);
+      break;
+    }
+    
+    case 'waitForElement': {
+      const locator = page.locator(getSelector(step));
+      await locator.waitFor({ 
+        state: step.visible ? 'visible' : 'attached',
+        timeout: step.timeout || 10000
+      });
+      break;
+    }
+    
+    case 'waitForExpression':
+      await page.waitForFunction(step.expression, { timeout: step.timeout || 10000 });
+      break;
+      
+    case 'close':
+      // Skip close in our context
+      break;
+      
+    default:
+      console.error(`Unknown step type: ${step.type}, skipping`);
+  }
+}
+
+/**
+ * Process a Chrome DevTools Recorder flow.
+ * Supports both browser mode (Playwright native) and native mode (OS-level input).
+ */
+async function playFlow(page, recording) {
+  const steps = recording.steps || [];
+  let stepsProcessed = 0;
+  
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
     
     try {
-      // Collect input actions for this flow action
-      const inputActions = [];
-      
-      switch (actionType) {
-        case 'goto': {
-          await page.goto(action.url, { waitUntil: 'networkidle', timeout: 30000 });
-          // Small wait after navigation
-          await page.waitForTimeout(500);
-          break;
-        }
-        
-        case 'wait': {
-          inputActions.push({ input: 'wait', ms: action.ms || 1000 });
-          break;
-        }
-        
-        case 'wait_for': {
-          const timeoutMs = action.timeout_ms || 10000;
-          await page.locator(action.selector).first().waitFor({ state: 'visible', timeout: timeoutMs });
-          break;
-        }
-        
-        case 'click': {
-          const coords = await getScreenCoordinates(page, action.selector, action.anchor || 'center');
-          if (coords.error) {
-            throw new Error(`Failed to get coordinates for ${action.selector}: ${coords.error}`);
-          }
-          inputActions.push({
-            input: 'move',
-            x: coords.screenX,
-            y: coords.screenY,
-            duration_ms: action.duration_ms || 500,
-            easing: 'ease_out'
-          });
-          inputActions.push({ input: 'wait', ms: 50 });
-          inputActions.push({ input: 'click', button: action.button || 'left' });
-          if (action.wait_after_ms) {
-            inputActions.push({ input: 'wait', ms: action.wait_after_ms });
-          }
-          break;
-        }
-        
-        case 'double_click': {
-          const coords = await getScreenCoordinates(page, action.selector, action.anchor || 'center');
-          if (coords.error) {
-            throw new Error(`Failed to get coordinates for ${action.selector}: ${coords.error}`);
-          }
-          inputActions.push({
-            input: 'move',
-            x: coords.screenX,
-            y: coords.screenY,
-            duration_ms: action.duration_ms || 500,
-            easing: 'ease_out'
-          });
-          inputActions.push({ input: 'wait', ms: 50 });
-          inputActions.push({ input: 'double_click', button: 'left' });
-          break;
-        }
-        
-        case 'hover': {
-          const coords = await getScreenCoordinates(page, action.selector, action.anchor || 'center');
-          if (coords.error) {
-            throw new Error(`Failed to get coordinates for ${action.selector}: ${coords.error}`);
-          }
-          inputActions.push({
-            input: 'move',
-            x: coords.screenX,
-            y: coords.screenY,
-            duration_ms: action.duration_ms || 500,
-            easing: 'ease_out'
-          });
-          if (action.hover_ms) {
-            inputActions.push({ input: 'wait', ms: action.hover_ms });
-          }
-          break;
-        }
-        
-        case 'type': {
-          const coords = await getScreenCoordinates(page, action.selector, 'center');
-          if (coords.error) {
-            throw new Error(`Failed to get coordinates for ${action.selector}: ${coords.error}`);
-          }
-          inputActions.push({
-            input: 'move',
-            x: coords.screenX,
-            y: coords.screenY,
-            duration_ms: action.duration_ms || 300,
-            easing: 'ease_out'
-          });
-          inputActions.push({ input: 'wait', ms: 50 });
-          inputActions.push({ input: 'click', button: 'left' });
-          inputActions.push({ input: 'wait', ms: 100 });
-          inputActions.push({
-            input: 'type',
-            text: action.text,
-            delay_ms: action.delay_ms || 50
-          });
-          break;
-        }
-        
-        case 'scroll': {
-          const direction = action.direction || 'down';
-          const amount = action.amount || 300;
-          const deltaY = direction === 'down' ? amount : -amount;
-          inputActions.push({
-            input: 'scroll',
-            delta_x: 0,
-            delta_y: deltaY
-          });
-          break;
-        }
-        
-        case 'scroll_to': {
-          const element = page.locator(action.selector).first();
-          await element.scrollIntoViewIfNeeded({ timeout: 5000 });
-          await page.waitForTimeout(300);
-          break;
-        }
-        
-        case 'key': {
-          inputActions.push({
-            input: 'key',
-            key: action.key
-          });
-          break;
-        }
-        
-        case 'key_combo': {
-          inputActions.push({
-            input: 'key_combo',
-            keys: action.keys
-          });
-          break;
-        }
-        
-        default:
-          throw new Error(`Unknown flow action: ${actionType}`);
+      if (playbackMode === 'browser') {
+        await playStepBrowserMode(page, step);
+      } else {
+        await playStepNativeMode(page, step);
       }
-      
-      // Execute input actions via AgentOS binary (enigo)
-      if (inputActions.length > 0) {
-        const result = executeInputActions(inputActions);
-        if (!result.success) {
-          throw new Error(`Input execution failed: ${result.error}`);
-        }
-        inputActionsExecuted += inputActions.length;
-        
-        // Wait for the estimated duration so page can react before next action
-        const estimatedDuration = estimateInputDuration(inputActions);
-        if (estimatedDuration > 0) {
-          await page.waitForTimeout(estimatedDuration + 100); // Add small buffer
-        }
-      }
-      
-      actionsProcessed++;
-      
+      stepsProcessed++;
     } catch (error) {
-      // Stream error and done signal
       streamAction({ 
         type: 'error', 
-        message: `Action ${i} (${actionType}) failed: ${error.message}`,
-        actions_processed: actionsProcessed
+        message: `Step ${i} (${step.type}) failed: ${error.message}`,
+        steps_processed: stepsProcessed
       });
       streamAction({ type: 'done', success: false });
       return {
         success: false,
-        error: `Action ${i} (${actionType}) failed: ${error.message}`,
-        flow_actions_processed: actionsProcessed,
-        input_actions_executed: inputActionsExecuted
+        error: `Step ${i} (${step.type}) failed: ${error.message}`,
+        steps_processed: stepsProcessed
       };
     }
   }
   
-  // Signal completion
   streamAction({ type: 'done', success: true });
   
   return {
     success: true,
-    flow_actions_processed: actionsProcessed,
-    input_actions_executed: inputActionsExecuted
+    steps_processed: stepsProcessed,
+    playback_mode: playbackMode
   };
 }
+
+/**
+ * Load the latest recording for a session from disk.
+ * Checks sessions file for lastRecordingFile, falls back to finding latest file.
+ */
+function loadRecording(sessionIdToLoad) {
+  // First check if sessions file has the latest recording info
+  const sessions = loadSessions();
+  const session = sessions[sessionIdToLoad];
+  
+  if (session?.lastRecordingFile) {
+    const recordingPath = join(recordingsDir, session.lastRecordingFile);
+    if (existsSync(recordingPath)) {
+      try {
+        return JSON.parse(readFileSync(recordingPath, 'utf-8'));
+      } catch (e) {
+        // Fall through to scan directory
+      }
+    }
+  }
+  
+  // Fall back to scanning recordings directory for this session
+  if (!existsSync(recordingsDir)) return null;
+  
+  const files = readdirSync(recordingsDir)
+    .filter(f => f.startsWith(sessionIdToLoad) && f.endsWith('.json'))
+    .sort()
+    .reverse();  // Latest first (timestamp-based IDs sort correctly)
+  
+  if (files.length === 0) return null;
+  
+  try {
+    return JSON.parse(readFileSync(join(recordingsDir, files[0]), 'utf-8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Save a recording to disk.
+ */
+function saveRecordingToDisk(sessionIdToSave, recording) {
+  if (!existsSync(recordingsDir)) {
+    mkdirSync(recordingsDir, { recursive: true });
+  }
+  writeFileSync(
+    join(recordingsDir, `${sessionIdToSave}.json`),
+    JSON.stringify(recording, null, 2)
+  );
+}
+
+// Parse recording param (for start_session)
+const startWithRecording = process.env.PARAM_RECORDING === 'true';
 
 async function run() {
   // Handle session management actions first
   if (action === 'start_session') {
     try {
-      const result = await startSession(url);
+      const result = await startSession(url, startWithRecording);
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
       console.log(JSON.stringify({
@@ -684,7 +852,7 @@ async function run() {
   
   try {
     // getBrowserAndPage already handles navigation, just wait if needed
-    if (url && action !== 'run_flow') {
+    if (url && action !== 'play_flow') {
       await page.waitForTimeout(waitMs);
     }
     
@@ -715,29 +883,99 @@ async function run() {
     };
     
     switch (action) {
-      case 'run_flow': {
-        if (!actionsJson) {
-          throw new Error('actions parameter is required for run_flow');
+      case 'play_flow': {
+        if (!recordingJson) {
+          throw new Error('recording parameter is required for play_flow');
         }
         
-        let actions;
+        let recording;
         try {
-          actions = JSON.parse(actionsJson);
+          recording = JSON.parse(recordingJson);
         } catch (e) {
-          throw new Error(`Invalid actions JSON: ${e.message}`);
+          throw new Error(`Invalid recording JSON: ${e.message}`);
         }
         
-        if (!Array.isArray(actions)) {
-          throw new Error('actions must be an array');
+        if (!recording.steps || !Array.isArray(recording.steps)) {
+          throw new Error('recording must have a steps array (Chrome DevTools Recorder format)');
         }
         
-        // Process flow with streaming execution
-        // Input actions are streamed to AgentOS via stdout as NDJSON
-        // AgentOS executes each batch immediately while browser stays open
-        result = await processFlow(page, actions);
+        // Play the Chrome DevTools recording
+        result = await playFlow(page, recording);
+        if (isSession && sessionId) {
+          result.session_id = sessionId;
+        }
+        console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+      
+      case 'record_flow': {
+        if (!sessionId) {
+          throw new Error('session_id is required for record_flow - start a session first');
+        }
         
-        // Final result is also output for the MCP response
-        // (processFlow already streamed the done signal)
+        // Tell daemon to start recording (via sessions file signal)
+        const sessions = loadSessions();
+        const session = sessions[sessionId];
+        if (!session) {
+          throw new Error(`Session not found: ${sessionId}`);
+        }
+        
+        session.recording = true;
+        session.recordingStarted = new Date().toISOString();
+        saveSessions(sessions);
+        
+        result.message = `Recording started on session ${sessionId}. Interact with the browser, then call stop_recording.`;
+        result.session_id = sessionId;
+        console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+      
+      case 'stop_recording': {
+        if (!sessionId) {
+          throw new Error('session_id is required for stop_recording');
+        }
+        
+        const sessions = loadSessions();
+        const session = sessions[sessionId];
+        if (!session) {
+          throw new Error(`Session not found: ${sessionId}`);
+        }
+        
+        // Get recording from daemon (stored in sessions file or recordings dir)
+        const recording = loadRecording(sessionId);
+        
+        // Clear recording state
+        session.recording = false;
+        session.recordingStarted = null;
+        saveSessions(sessions);
+        
+        if (recording) {
+          result.recording = recording;
+          result.message = `Recording stopped. Captured ${recording.steps?.length || 0} steps.`;
+        } else {
+          result.recording = { title: `Recording ${sessionId}`, steps: [] };
+          result.message = 'Recording stopped (no events captured).';
+        }
+        result.session_id = sessionId;
+        console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+      
+      case 'get_recording': {
+        if (!sessionId) {
+          throw new Error('session_id is required for get_recording');
+        }
+        
+        const recording = loadRecording(sessionId);
+        if (recording) {
+          result.recording = recording;
+          result.message = `Found recording with ${recording.steps?.length || 0} steps.`;
+        } else {
+          result.success = false;
+          result.error = `No recording found for session ${sessionId}`;
+        }
+        result.session_id = sessionId;
+        console.log(JSON.stringify(result, null, 2));
         break;
       }
       
@@ -822,7 +1060,9 @@ async function run() {
       
       case 'click': {
         if (!selector) throw new Error('selector is required for click action');
-        await page.locator(selector).first().click();
+        const clickLocator = page.locator(selector).first();
+        await clickLocator.waitFor({ state: 'visible', timeout: 10000 });
+        await clickLocator.click();
         await page.waitForTimeout(waitMs);
         result.clicked = selector;
         result.title = await page.title();
