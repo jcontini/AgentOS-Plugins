@@ -128,12 +128,12 @@ Instructions for AI go here...
 ```bash
 git clone https://github.com/agentos/agentos-plugins
 cd agentos-plugins
-./setup.sh  # Configures security hooks
+git config core.hooksPath .githooks
 ```
 
-The setup script enables pre-commit hooks that block insecure patterns:
-- `$AUTH_TOKEN` exposure
-- `curl`/`wget` usage (use `rest:` or `http:` blocks instead)
+The last command enables security hooks that block commits containing:
+- `$AUTH_TOKEN` exposure in scripts
+- `curl`/`wget` usage (use `rest:` blocks instead)
 - Bearer token interpolation
 
 ## Contributing
