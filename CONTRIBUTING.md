@@ -552,6 +552,90 @@ applescript:
       title: "[].title"
 ```
 
+### Chained Executors
+
+Actions can chain multiple executors to build complex workflows. Each step's result can be referenced by later steps using `as:` naming:
+
+```yaml
+complete:
+  # Step 1: Look up the completed state for this issue's team
+  - graphql:
+      query: |
+        query($id: String!) {
+          issue(id: $id) {
+            team { states(filter: { type: { eq: "completed" } }) { nodes { id } } }
+          }
+        }
+      variables:
+        id: "{{params.id}}"
+    as: lookup
+  
+  # Step 2: Use the found state ID to complete the issue
+  - graphql:
+      query: |
+        mutation($id: String!, $stateId: String!) {
+          issueUpdate(id: $id, input: { stateId: $stateId }) { success }
+        }
+      variables:
+        id: "{{params.id}}"
+        stateId: "{{lookup.data.issue.team.states.nodes[0].id}}"
+```
+
+**Key features:**
+- Each step can be any executor type (`rest:`, `graphql:`, `sql:`, `applescript:`)
+- `as: name` stores the step's result for later reference
+- Access nested results with path notation: `{{name.data.field[0].subfield}}`
+- Last step's result is returned to the caller
+
+You can mix executor types in a chain:
+
+```yaml
+move_and_log:
+  - rest:
+      method: POST
+      url: https://api.example.com/move
+      body: { id: "{{params.id}}" }
+    as: moved
+  - sql:
+      query: "INSERT INTO logs (task_id) VALUES ('{{moved.id}}')"
+```
+
+### REST Encoding Options
+
+By default, REST bodies are sent as JSON. Use `encoding: form` for form-urlencoded:
+
+```yaml
+move:
+  rest:
+    method: POST
+    url: https://api.todoist.com/sync/v9/sync
+    encoding: form  # Content-Type: application/x-www-form-urlencoded
+    body:
+      commands: '[{"type":"item_move","args":{"id":"{{params.id}}"}}]'
+```
+
+### Named Transforms
+
+Transform values during interpolation with pipe syntax:
+
+```yaml
+# Priority inversion: our 1=urgent → their 4=urgent
+priority: "{{params.priority | invert:5}}"  # 1→4, 2→3, 3→2, 4→1
+
+# Addition/subtraction
+value: "{{params.count | add:1}}"
+value: "{{params.count | sub:1}}"
+
+# Default values
+label: "{{params.label | default:none}}"
+```
+
+Available transforms:
+- `invert:N` — Computes `N - value`
+- `add:N` — Adds N to value
+- `sub:N` — Subtracts N from value
+- `default:X` — Uses X if value is empty
+
 ### Need a New Executor?
 
 If your connector needs functionality not covered by existing executors, open an issue to discuss adding a new executor type. Common requests:
