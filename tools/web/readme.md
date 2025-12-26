@@ -2,7 +2,7 @@
 id: web
 name: Web
 description: Search the web and extract content from URLs
-icon: material-symbols:language
+icon: icon.svg
 color: "#8B5CF6"
 
 schema:
@@ -113,4 +113,3 @@ Web(action: "read", connector: "firecrawl", params: {url: "https://notion.so/pag
 - Firecrawl renders JavaScript - use for React, Vue, Angular, Notion
 - Both support search and read actions
 - Default to exa for speed, fallback to firecrawl if needed
-

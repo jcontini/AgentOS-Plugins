@@ -789,7 +789,7 @@ Platform values: `macos`, `windows`, `linux`, `all` (default)
    ---
    id: my-provider
    name: My Provider
-   icon: icon.svg  # or simple-icons:servicename
+   icon: icon.svg
    color: "#FF6B35"
    auth:
      type: api_key
@@ -799,10 +799,21 @@ Platform values: `macos`, `windows`, `linux`, `all` (default)
    ```
 
 3. **Add icon file** (required):
-   - **Option A:** Local file — add `icon.svg` or `icon.png` to the provider folder
-   - **Option B:** Iconify reference — use `icon: simple-icons:servicename` if available
+   - Add `icon.svg` (preferred) or `icon.png` to the provider folder
+   - Reference it in readme.md: `icon: icon.svg` or `icon: icon.png`
+   - Icons should be square and work at small sizes (16-32px)
    
-   SVG preferred. Icons should be square and work at small sizes (16-32px).
+   **To get icons from Iconify:**
+   ```bash
+   # Download SVG from Iconify API
+   curl "https://api.iconify.design/{prefix}/{name}.svg" -o icon.svg
+   
+   # Examples:
+   curl "https://api.iconify.design/simple-icons/github.svg" -o icon.svg
+   curl "https://api.iconify.design/material-symbols/database.svg" -o icon.svg
+   ```
+   
+   Find icons at [icones.js.org](https://icones.js.org) or [icon-sets.iconify.design](https://icon-sets.iconify.design).
 
 4. **Add tool mapping(s):** `{tool}.yaml` for each tool supported (e.g., `tasks.yaml`, `messages.yaml`)
 
@@ -815,9 +826,54 @@ Platform values: `macos`, `windows`, `linux`, `all` (default)
 ```
 providers/my-provider/
 ├── readme.md      # Provider config (auth, icon, instructions)
-├── icon.svg       # Provider icon (SVG preferred)
+├── icon.svg       # Provider icon (required, SVG preferred)
 ├── tasks.yaml     # Tool mapping (if supporting tasks)
 └── messages.yaml  # Tool mapping (if supporting messages)
+```
+
+---
+
+## Contributing a New Tool
+
+Tools are utility types that don't manage entities (unlike apps like Tasks, Calendar, etc).
+
+1. **Create tool folder:** `tools/{tool}/`
+
+2. **Add readme.md** with schema and actions:
+   ```yaml
+   ---
+   id: my-tool
+   name: My Tool
+   description: What this tool does
+   icon: icon.svg
+   color: "#FF6B35"
+   
+   schema:
+     # Entity schemas if any
+   
+   actions:
+     action_name:
+       description: What this action does
+       params:
+         param1: { type: string, required: true }
+       returns: result_type
+   ---
+   ```
+
+3. **Add icon file** (required):
+   - Add `icon.svg` (preferred) or `icon.png` to the tool folder
+   - Reference it in readme.md: `icon: icon.svg`
+   - Use Material Symbols for generic tool icons:
+   ```bash
+   curl "https://api.iconify.design/material-symbols/{icon-name}.svg" -o icon.svg
+   ```
+
+### Tool Folder Structure
+
+```
+tools/my-tool/
+├── readme.md      # Tool config (schema, actions, instructions)
+└── icon.svg       # Tool icon (required, SVG preferred)
 ```
 
 ---

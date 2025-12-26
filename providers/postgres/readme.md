@@ -2,7 +2,7 @@
 id: postgres
 name: PostgreSQL
 description: Connect to PostgreSQL databases
-icon: simple-icons:postgresql
+icon: icon.svg
 color: "#336791"
 
 website: https://www.postgresql.org

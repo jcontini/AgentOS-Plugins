@@ -2,7 +2,7 @@
 id: contacts
 name: Contacts
 description: Unified contact management across all your address books
-icon: material-symbols:contacts
+icon: icon.svg
 color: "#5856D6"
 
 schema:

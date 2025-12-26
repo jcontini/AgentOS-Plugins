@@ -2,7 +2,7 @@
 id: messages
 name: Messages
 description: Unified messaging across all your communication platforms
-icon: material-symbols:chat
+icon: icon.svg
 color: "#3B82F6"
 
 schema:

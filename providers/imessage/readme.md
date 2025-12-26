@@ -2,7 +2,7 @@
 id: imessage
 name: iMessage
 description: Read iMessages and SMS from macOS Messages app
-icon: simple-icons:imessage
+icon: icon.png
 color: "#34C759"
 
 website: https://support.apple.com/messages

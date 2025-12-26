@@ -2,7 +2,7 @@
 id: databases
 name: Databases
 description: Query and manage SQL databases (Postgres, MySQL, SQLite)
-icon: material-symbols:database
+icon: icon.svg
 color: "#6366F1"
 
 schema:
@@ -56,6 +56,9 @@ actions:
         type: string
         required: true
         description: SQL query to execute
+      connection_string:
+        type: string
+        description: Ad-hoc connection string (postgresql://..., mysql://..., or /path/to/file.sqlite). Bypasses credential lookup.
       account:
         type: string
         description: Account label (required if multiple accounts configured)
@@ -66,6 +69,9 @@ actions:
     description: List all tables in the database
     readonly: true
     params:
+      connection_string:
+        type: string
+        description: Ad-hoc connection string (postgresql://..., mysql://..., or /path/to/file.sqlite). Bypasses credential lookup.
       account:
         type: string
         description: Account label (required if multiple accounts configured)
@@ -82,6 +88,9 @@ actions:
         type: string
         required: true
         description: Table name to describe
+      connection_string:
+        type: string
+        description: Ad-hoc connection string (postgresql://..., mysql://..., or /path/to/file.sqlite). Bypasses credential lookup.
       account:
         type: string
         description: Account label (required if multiple accounts configured)
@@ -182,5 +191,3 @@ Potential additions using different executors:
 | `planetscale` | `sql:` | Standard MySQL wire protocol |
 | `mongodb` | `mongodb:` | Would need new executor |
 | `convex` | `convex:` | TypeScript function calls |
-
-

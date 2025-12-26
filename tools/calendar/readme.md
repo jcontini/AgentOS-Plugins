@@ -2,7 +2,7 @@
 id: calendar
 name: Calendar
 description: Unified calendar management across all your scheduling tools
-icon: material-symbols:calendar-month
+icon: icon.svg
 color: "#FF3B30"
 
 schema:

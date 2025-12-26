@@ -2,7 +2,7 @@
 id: tasks
 name: Tasks
 description: Unified task management across all your tools
-icon: material-symbols:check-circle
+icon: icon.svg
 color: "#10B981"
 
 schema:

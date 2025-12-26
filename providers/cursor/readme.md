@@ -2,7 +2,7 @@
 id: cursor
 name: Cursor
 description: AI-powered code editor conversation history
-icon: simple-icons:cursor
+icon: icon.png
 color: "#00D1FF"
 
 website: https://cursor.sh

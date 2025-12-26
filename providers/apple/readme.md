@@ -2,7 +2,7 @@
 id: apple
 name: Apple
 description: Access macOS Calendar and Contacts via native APIs
-icon: simple-icons:apple
+icon: icon.png
 color: "#000000"
 
 website: https://www.apple.com/macos/
