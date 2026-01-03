@@ -448,11 +448,26 @@ No Rust code needed. The connector defines all the Letterboxd-specific logic.
 
 ### Philosophy
 
-**Tests live with the code they test.** Each app and connector can include its own tests. This scales to thousands of apps without bloating the core repo.
+**All tests are end-to-end.** We test the real AgentOS binary with real data. No mocking, no unit tests. If E2E passes, the whole stack works.
+
+**Tests live with the code they test.** Each app and connector includes its own tests. This scales to thousands of apps without bloating the core repo.
+
+### What Contributors Need
+
+| You need | You don't need |
+|----------|----------------|
+| Node.js + npm | Rust |
+| Vitest (test runner) | Playwright |
+| MCP client (provided) | Svelte |
+| AgentOS binary (built) | Core repo access |
+
+Contributors write **YAML configs + tests**. That's it. The MCP client talks to the real AgentOS binary - no browser automation needed.
+
+### Test Ownership
 
 | What | Where | Tests |
 |------|-------|-------|
-| AgentOS Core | `agentos/` repo | Generic executor tests, MCP protocol, UI |
+| AgentOS Core | `agentos/` repo | Executors, MCP protocol, UI (Playwright) |
 | Apps | `integrations/apps/{app}/` | Schema validation, CRUD operations |
 | Connectors | `integrations/connectors/{connector}/` | Import/sync, field mapping |
 
@@ -521,68 +536,41 @@ Test that the app's schema and CRUD work correctly:
 
 ```typescript
 // apps/books/tests/books.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { AgentOS } from '../../../tests/utils/mcp-client';
+import { describe, it, expect, afterAll } from 'vitest';
+import { aos, cleanupTestData, TEST_PREFIX } from '../../../tests/utils/fixtures';
 
 describe('Books App', () => {
-  let aos: AgentOS;
-
-  beforeAll(async () => {
-    aos = await AgentOS.connect();
-  });
-
+  // MCP connection is handled globally by tests/setup.ts
+  // Just use the aos() helper to make calls
+  
   afterAll(async () => {
-    await aos.disconnect();
+    // Clean up any test data we created
+    await cleanupTestData('Books');
   });
 
-  describe('CRUD', () => {
-    it('can create a book', async () => {
-      const book = await aos.call('Books', {
-        action: 'create',
-        params: {
-          title: '[TEST] My Book',
-          authors: ['Test Author'],
-          status: 'want_to_read',
-        },
-      });
-
-      expect(book.id).toBeDefined();
-      expect(book.title).toBe('[TEST] My Book');
-
-      // Cleanup
-      await aos.call('Books', { action: 'delete', params: { id: book.id } });
+  describe('List', () => {
+    it('can list all books', async () => {
+      const books = await aos().books.list();
+      expect(Array.isArray(books)).toBe(true);
     });
 
-    it('can list books with filters', async () => {
-      const books = await aos.call('Books', {
-        action: 'list',
-        params: { status: 'read', limit: 10 },
-      });
-
-      expect(Array.isArray(books)).toBe(true);
+    it('can filter by status', async () => {
+      const books = await aos().books.list({ status: 'read' });
       books.forEach(book => {
         expect(book.status).toBe('read');
       });
     });
   });
 
-  describe('Schema Validation', () => {
-    it('requires title field', async () => {
-      await expect(
-        aos.call('Books', {
-          action: 'create',
-          params: { status: 'reading' }, // missing title
-        })
-      ).rejects.toThrow();
-    });
-
-    it('validates status enum', async () => {
-      await expect(
-        aos.call('Books', {
-          action: 'create',
-          params: { title: 'Test', status: 'invalid_status' },
-        })
-      ).rejects.toThrow();
+  describe('Data Integrity', () => {
+    it('books have required fields', async () => {
+      const books = await aos().books.list({ limit: 10 });
+      for (const book of books) {
+        expect(book.id).toBeDefined();
+        expect(book.title).toBeDefined();
+        expect(book.status).toBeDefined();
+        expect(['want_to_read', 'reading', 'read', 'dnf']).toContain(book.status);
+      }
     });
   });
 });
@@ -594,89 +582,57 @@ Test that the connector correctly imports/syncs data:
 
 ```typescript
 // connectors/goodreads/tests/import.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { AgentOS } from '../../../tests/utils/mcp-client';
-import path from 'path';
+import { describe, it, expect, afterAll } from 'vitest';
+import { aos, cleanupTestData } from '../../../tests/utils/fixtures';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturesDir = join(__dirname, 'fixtures');
 
 describe('Goodreads Connector', () => {
-  let aos: AgentOS;
-  const fixtureDir = path.join(__dirname, 'fixtures');
-
-  beforeAll(async () => {
-    aos = await AgentOS.connect();
-  });
-
   afterAll(async () => {
-    await aos.disconnect();
+    // Clean up imported test books
+    await cleanupTestData('Books', 
+      (book) => book.source_connector === 'goodreads' && book.title?.startsWith('[TEST]')
+    );
   });
 
   describe('CSV Import', () => {
-    it('imports books from Goodreads CSV', async () => {
-      const csvPath = path.join(fixtureDir, 'goodreads-export.csv');
-      
-      const result = await aos.call('Books', {
-        action: 'import',
-        connector: 'goodreads',
-        params: { path: csvPath, dry_run: true },
-      });
+    it('imports books from Goodreads CSV (dry run)', async () => {
+      const csvPath = join(fixturesDir, 'sample-export.csv');
+      const result = await aos().books.import('goodreads', csvPath, true);
 
       expect(result.imported).toBeGreaterThan(0);
       expect(result.errors).toEqual([]);
     });
+  });
 
-    it('maps Goodreads fields correctly', async () => {
-      const csvPath = path.join(fixtureDir, 'goodreads-export.csv');
-      
-      // Import with dry_run: false to actually insert
-      await aos.call('Books', {
-        action: 'import',
-        connector: 'goodreads',
-        params: { path: csvPath },
-      });
+  describe('Field Mapping', () => {
+    it('maps title correctly', async () => {
+      const csvPath = join(fixturesDir, 'sample-export.csv');
+      await aos().books.import('goodreads', csvPath, false);
 
-      // Verify a known book was imported correctly
-      const books = await aos.call('Books', {
-        action: 'list',
-        params: { limit: 100 },
-      });
+      const books = await aos().books.list();
+      const book = books.find(b => b.source_id === '12345');
 
-      const testBook = books.find(b => b.source_id === '12345'); // Known ID from fixture
-      expect(testBook).toBeDefined();
-      expect(testBook.source_connector).toBe('goodreads');
-      expect(testBook.title).toBe('Expected Title');
-      expect(testBook.isbn).toBe('0123456789');
+      expect(book?.title).toBe('[TEST] The Great Gatsby');
     });
 
-    it('handles ISBN with quotes wrapper', async () => {
-      // Goodreads CSVs have ISBNs like ="0123456789"
-      const csvPath = path.join(fixtureDir, 'goodreads-isbn-quotes.csv');
-      
-      await aos.call('Books', {
-        action: 'import',
-        connector: 'goodreads',
-        params: { path: csvPath },
-      });
+    it('strips ISBN quotes wrapper', async () => {
+      const books = await aos().books.list();
+      const book = books.find(b => b.source_id === '12345');
 
-      const books = await aos.call('Books', { action: 'list' });
-      const book = books.find(b => b.source_id === 'isbn-test');
-      
-      expect(book.isbn).toBe('0123456789'); // Quotes stripped
+      // Goodreads CSVs have ISBNs like ="0743273567"
+      expect(book?.isbn).toBe('0743273567');
     });
 
-    it('maps shelf to status correctly', async () => {
-      const csvPath = path.join(fixtureDir, 'goodreads-shelves.csv');
+    it('maps shelf to status', async () => {
+      const books = await aos().books.list();
       
-      await aos.call('Books', {
-        action: 'import',
-        connector: 'goodreads',
-        params: { path: csvPath },
-      });
-
-      const books = await aos.call('Books', { action: 'list' });
-      
-      expect(books.find(b => b.source_id === 'shelf-read').status).toBe('read');
-      expect(books.find(b => b.source_id === 'shelf-reading').status).toBe('reading');
-      expect(books.find(b => b.source_id === 'shelf-toread').status).toBe('want_to_read');
+      expect(books.find(b => b.source_id === '12345')?.status).toBe('read');
+      expect(books.find(b => b.source_id === '12346')?.status).toBe('reading');
+      expect(books.find(b => b.source_id === '12347')?.status).toBe('want_to_read');
     });
   });
 });
@@ -705,19 +661,26 @@ connectors/goodreads/tests/fixtures/
 The `tests/utils/` directory provides common helpers:
 
 ```typescript
-// tests/utils/mcp-client.ts
-export class AgentOS {
-  static async connect(): Promise<AgentOS>;
-  async disconnect(): Promise<void>;
-  async call(tool: string, args: object): Promise<any>;
-}
+// tests/utils/fixtures.ts - The main import for tests
+import { aos, cleanupTestData, testContent, TEST_PREFIX } from '../../../tests/utils/fixtures';
 
-// tests/utils/fixtures.ts
-export const TEST_PREFIX = '[TEST]';
-export function testId(): string;                    // Generate unique test ID
-export function isTestData(str: string): boolean;   // Check if test data
-export async function cleanup(aos: AgentOS): Promise<void>;  // Remove test data
+// aos() - Get the global AgentOS instance (connected via setup.ts)
+const books = await aos().books.list();
+const result = await aos().books.import('goodreads', path, true);
+await aos().call('Books', { action: 'list', params: { status: 'read' } });
+
+// cleanupTestData() - Remove test records after tests
+await cleanupTestData('Books');  // Removes items with [TEST] prefix
+await cleanupTestData('Books', (b) => b.source_connector === 'goodreads');
+
+// testContent() - Generate unique test content
+const title = testContent('My Book');  // "[TEST] My Book 1704312000000_abc123"
+
+// TEST_PREFIX - The prefix for test data
+expect(book.title.startsWith(TEST_PREFIX)).toBe(true);
 ```
+
+**The MCP connection is managed globally** - you don't need `beforeAll`/`afterAll` to connect. Just use `aos()` and it works.
 
 ### Test Environment
 
