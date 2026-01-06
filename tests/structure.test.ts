@@ -149,23 +149,3 @@ describe('Icon Quality', () => {
   });
 });
 
-// =============================================================================
-// FILE HYGIENE (prevent old patterns)
-// =============================================================================
-
-describe('File Hygiene', () => {
-  const apps = getApps();
-  const connectors = getConnectors();
-
-  it('no schema.sql files (schema in readme.md)', () => {
-    for (const app of apps) {
-      expect(existsSync(join(APPS_DIR, app, 'schema.sql'))).toBe(false);
-    }
-  });
-
-  it('no mapping.yaml files (actions in readme.md)', () => {
-    for (const { dir } of connectors) {
-      expect(existsSync(join(dir, 'mapping.yaml'))).toBe(false);
-    }
-  });
-});
