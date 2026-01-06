@@ -30,26 +30,17 @@ auth:
       steps:
         - goto: "https://www.instagram.com/accounts/login/"
         
+        # Wait for successful login (redirected to home or DMs)
         - wait_for:
             any:
-              - url_matches: "https://www.instagram.com/$"
-              - url_matches: "https://www.instagram.com/direct/"
+              - url_matches: "instagram.com/$"
+              - url_matches: "instagram.com/direct"
               - selector: "[aria-label='Home']"
+              - cookie: sessionid
             timeout: 300000
             
-        - assert_cookies:
-            - sessionid
-            - csrftoken
-            - ds_user_id
-            
-        - extract_cookies:
-            names: [sessionid, csrftoken, ds_user_id, mid, ig_did]
-            optional: [rur, ig_www_claim]
-              
-        - extract:
-            selector: "img[data-testid='user-avatar']"
-            attribute: "alt"
-            as: "username"
+        # Extract all the cookies we need
+        - extract_cookies: [sessionid, csrftoken, ds_user_id, mid, ig_did]
             
         - close
         
@@ -106,19 +97,9 @@ session:
 # ============================================================================
 
 api:
-  base_url: "https://i.instagram.com/api/v1"
-  
-  headers:
-    User-Agent: "Instagram 275.0.0.27.98 Android (33/13; 420dpi; 1080x2400; Google/google; Pixel 7; panther; tensor; en_US; 458229258)"
-    X-IG-App-ID: "936619743392459"
-    X-IG-Device-ID: "{{auth.cookies.ig_did}}"
-    X-MID: "{{auth.cookies.mid}}"
-    X-CSRFTOKEN: "{{auth.cookies.csrftoken}}"
-    X-IG-WWW-Claim: "{{auth.ig_www_claim | default: '0'}}"
-    Accept-Language: "en-US,en;q=0.9"
-    Accept-Encoding: "gzip, deflate"
-    Host: "i.instagram.com"
-    Connection: "keep-alive"
+# Note: API requests use absolute URLs since api.base_url isn't interpolated yet
+# Once supported, change URLs from https://www.instagram.com/api/v1/... to https://www.instagram.com/api/v1/...
+# base_url: "https://www.instagram.com/api/v1"
     
   response_hooks:
     - header: "x-ig-set-www-claim"
@@ -174,8 +155,12 @@ actions:
         default: ""
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/inbox/"
-      params:
+      url: "https://www.instagram.com/api/v1/direct_v2/inbox/"
+      headers:
+        X-IG-App-ID: "936619743392459"
+        X-Requested-With: "XMLHttpRequest"
+        Referer: "https://www.instagram.com/direct/inbox/"
+      query:
         visual_message_return_type: "unseen"
         thread_message_limit: "10"
         persistentBadging: "true"
@@ -206,7 +191,7 @@ actions:
         required: true
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/"
       params:
         visual_message_return_type: "unseen"
         limit: "1"
@@ -238,7 +223,7 @@ actions:
         max: 100
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/"
       params:
         visual_message_return_type: "unseen"
         direction: "older"
@@ -278,7 +263,7 @@ actions:
         required: true
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/"
       params:
         visual_message_return_type: "unseen"
         limit: "50"
@@ -309,7 +294,7 @@ actions:
         default: 30
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/search_secondary/"
+      url: "https://www.instagram.com/api/v1/direct_v2/search_secondary/"
       params:
         query: "{{params.query}}"
         result_types: '["message_content","reshared_content"]'
@@ -334,7 +319,7 @@ actions:
         default: 20
     rest:
       method: GET
-      url: "{{api.base_url}}/direct_v2/inbox/"
+      url: "https://www.instagram.com/api/v1/direct_v2/inbox/"
       params:
         visual_message_return_type: "unseen"
         persistentBadging: "true"
@@ -361,7 +346,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/fetch_and_subscribe_presence/"
+      url: "https://www.instagram.com/api/v1/direct_v2/fetch_and_subscribe_presence/"
       body:
         _uuid: "{{device.uuid}}"
         subscriptions_off: "false"
@@ -392,7 +377,7 @@ actions:
         description: "Message ID to reply to"
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/broadcast/text/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/broadcast/text/"
       body:
         thread_ids: "[{{params.conversation_id}}]"
         text: "{{params.text}}"
@@ -429,7 +414,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/broadcast/text/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/broadcast/text/"
       body:
         recipient_users: "[[{{params.user_id}}]]"
         text: "{{params.text}}"
@@ -464,7 +449,7 @@ actions:
         description: "Emoji character (❤️ 😂 😮 😢 😡 👍)"
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/reactions/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/reactions/"
       body:
         reaction_status: "created"
         reaction_type: "like"
@@ -487,7 +472,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/reactions/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/reactions/"
       body:
         reaction_status: "deleted"
         client_context: "{{generate_uuid}}"
@@ -508,7 +493,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/seen/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/seen/"
       body:
         thread_id: "{{params.conversation_id}}"
         action: "mark_seen"
@@ -527,7 +512,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/mark_unread/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/mark_unread/"
       body:
         _uuid: "{{device.uuid}}"
       response:
@@ -546,7 +531,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/delete/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/items/{{params.message_id}}/delete/"
       body:
         _uuid: "{{device.uuid}}"
       response:
@@ -562,7 +547,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/mute/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/mute/"
       body:
         _uuid: "{{device.uuid}}"
       response:
@@ -578,7 +563,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/unmute/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/unmute/"
       body:
         _uuid: "{{device.uuid}}"
       response:
@@ -594,7 +579,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/hide/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/hide/"
       body:
         _uuid: "{{device.uuid}}"
         should_move_future_requests_to_spam: "false"
@@ -611,7 +596,7 @@ actions:
         required: true
     rest:
       method: POST
-      url: "{{api.base_url}}/direct_v2/threads/{{params.conversation_id}}/activity/"
+      url: "https://www.instagram.com/api/v1/direct_v2/threads/{{params.conversation_id}}/activity/"
       body:
         _uuid: "{{device.uuid}}"
         activity_status: "1"  # 1 = typing, 0 = stopped
