@@ -115,7 +115,8 @@ actions:
           ZDEPARTMENT as department,
           COALESCE(ZFIRSTNAME || ' ' || ZLASTNAME, ZORGANIZATION, ZFIRSTNAME, ZLASTNAME) as display_name,
           datetime(ZMODIFICATIONDATE + 978307200, 'unixepoch') as modified_at,
-          datetime(ZCREATIONDATE + 978307200, 'unixepoch') as created_at
+          datetime(ZCREATIONDATE + 978307200, 'unixepoch') as created_at,
+          CASE WHEN ZTHUMBNAILIMAGEDATA IS NOT NULL THEN 1 ELSE 0 END as has_photo
         FROM ZABCDRECORD
         WHERE ZUNIQUEID LIKE '%:ABPerson'
           AND (
@@ -149,6 +150,7 @@ actions:
           display_name: "[].display_name"
           modified_at: "[].modified_at"
           created_at: "[].created_at"
+          has_photo: "[].has_photo"
           connector: "'apple-contacts'"
 
   search:
@@ -167,7 +169,8 @@ actions:
           r.ZLASTNAME as last_name,
           r.ZORGANIZATION as organization,
           r.ZJOBTITLE as job_title,
-          COALESCE(r.ZFIRSTNAME || ' ' || r.ZLASTNAME, r.ZORGANIZATION) as display_name
+          COALESCE(r.ZFIRSTNAME || ' ' || r.ZLASTNAME, r.ZORGANIZATION) as display_name,
+          CASE WHEN r.ZTHUMBNAILIMAGEDATA IS NOT NULL THEN 1 ELSE 0 END as has_photo
         FROM ZABCDRECORD r
         LEFT JOIN ZABCDPHONENUMBER p ON p.ZOWNER = r.Z_PK
         LEFT JOIN ZABCDEMAILADDRESS e ON e.ZOWNER = r.Z_PK
@@ -189,6 +192,7 @@ actions:
           organization: "[].organization"
           job_title: "[].job_title"
           display_name: "[].display_name"
+          has_photo: "[].has_photo"
           connector: "'apple-contacts'"
 
   get:
