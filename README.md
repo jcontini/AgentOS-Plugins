@@ -1,6 +1,6 @@
 # AgentOS Integrations
 
-Open-source apps and connectors for [AgentOS](https://github.com/jcontini/agentos).
+Open-source apps and integrations for [AgentOS](https://github.com/jcontini/agentos).
 
 ## Mental Model
 
@@ -17,8 +17,8 @@ Open-source apps and connectors for [AgentOS](https://github.com/jcontini/agento
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  CONNECTORS: todoist • linear • postgres • copilot • imessage      │
-│  Location: apps/{app}/connectors/{connector}/readme.md              │
+│  INTEGRATIONS: todoist • linear • apple-contacts • mimestream      │
+│  Location: apps/{app}/connectors/{name}/readme.md                   │
 └─────────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -27,6 +27,17 @@ Open-source apps and connectors for [AgentOS](https://github.com/jcontini/agento
 │  Location: AgentOS Core (Rust)                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+## Terminology
+
+| Term | Meaning | Notes |
+|------|---------|-------|
+| **App** | Data type with unified schema + actions | tasks, contacts, email |
+| **Integration** | Service that implements app(s) | todoist, linear, apple-contacts |
+| **Account** | Your configured access to an integration | Credentials, API keys, or "default" for local |
+| **Executor** | Protocol handler in Rust core | `rest:`, `sql:`, `graphql:` |
+
+> **Note:** We're migrating from "Connector" to "Integration". Code and folders still use "connector" but documentation uses "integration".
 
 ## Structure
 
@@ -52,14 +63,14 @@ apps/
 
 | Layer | What | Examples |
 |-------|------|----------|
-| **App** | Capability with unified schema | Tasks, Databases, Messages |
-| **Connector** | Service that implements app(s) | todoist, postgres, linear |
+| **App** | Capability with unified schema | Tasks, Contacts, Messages |
+| **Integration** | Service that implements app(s) | todoist, linear, apple-contacts |
 | **Executor** | Protocol handler (Rust) | `rest:`, `sql:`, `graphql:` |
 
 ### How It Works
 
 ```
-AI calls: Tasks(action: "list", connector: "todoist")
+AI calls: Tasks(action: "list", integration: "todoist")
     ↓
 AgentOS loads: apps/tasks/connectors/todoist/readme.md
     ↓
@@ -70,7 +81,7 @@ Returns: Unified task schema
 
 ## Current Apps
 
-| App | Connectors |
+| App | Integrations |
 |-----|------------|
 | Tasks | todoist, linear |
 | Messages | imessage, whatsapp, cursor |

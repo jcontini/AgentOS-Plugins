@@ -12,8 +12,8 @@
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  CONNECTORS: linear • todoist • apple-contacts • copilot • ...      │
-│  Location: apps/{app}/connectors/{connector}/readme.md              │
+│  INTEGRATIONS: linear • todoist • apple-contacts • mimestream       │
+│  Location: apps/{app}/connectors/{name}/readme.md                   │
 │    - Auth config + action implementations                           │
 └─────────────────────────────────────────────────────────────────────┘
                               │
@@ -26,11 +26,24 @@
 
 ---
 
+## Terminology
+
+| Term | Meaning |
+|------|---------|
+| **App** | Data type with unified schema + actions (tasks, contacts, email) |
+| **Integration** | Service that implements app(s) — formerly "Connector" |
+| **Account** | Your configured access to an integration |
+| **Executor** | Protocol handler: `rest:`, `sql:`, `graphql:`, `swift:`, etc. |
+
+> We're migrating terminology from "Connector" to "Integration". Folder structure still uses `connectors/` but prefer "integration" in documentation and new code.
+
+---
+
 ## ⚠️ Key Concepts (Read First!)
 
-### 1. `readonly` is defined at APP level, not connector
+### 1. `readonly` is defined at APP level, not integration
 
-Write protection comes from `apps/{app}/readme.md`, NOT the connector:
+Write protection comes from `apps/{app}/readme.md`, NOT the integration:
 
 ```yaml
 # apps/contacts/readme.md  ← THIS is where readonly goes
@@ -66,7 +79,7 @@ pkill -9 agentos       # Kill process, will restart on next call
 
 ## Quick Reference
 
-| To build... | Reference connector |
+| To build... | Reference integration |
 |-------------|---------------------|
 | REST API | `apps/finance/connectors/copilot/readme.md` |
 | GraphQL API | `apps/tasks/connectors/linear/readme.md` |
@@ -183,7 +196,7 @@ rest:
 
 **Key points:**
 - Templates work in `url`, `headers`, `body`, `query`
-- Auth headers injected automatically from connector auth config
+- Auth headers injected automatically from integration auth config
 
 ---
 
@@ -271,7 +284,7 @@ actions:
 
 ---
 
-## macOS Connector Pattern
+## macOS Integration Pattern
 
 For local macOS data, use mixed executors:
 
@@ -336,16 +349,16 @@ actions:
 
 ---
 
-## Creating a Connector
+## Creating an Integration
 
-**Location:** `apps/{app}/connectors/{connector}/readme.md`
+**Location:** `apps/{app}/connectors/{name}/readme.md`
 
 ```yaml
 ---
 id: apple-contacts
 name: Apple Contacts
 
-# Auth (optional - omit for local databases)
+# Auth (optional - omit for local integrations)
 auth:
   type: api_key
   header: Authorization
@@ -368,7 +381,7 @@ See [TESTING.md](./TESTING.md) for full guide.
 ```typescript
 import { aos, testContent } from '../../../tests/utils/fixtures';
 
-describe('My Connector', () => {
+describe('My Integration', () => {
   it('can list items', async () => {
     const items = await aos().call('MyApp', {
       action: 'list',
@@ -393,7 +406,7 @@ apps/
     icon.svg
     connectors/
       apple-contacts/
-        readme.md       ← Connector auth + action implementations
+        readme.md       ← Integration auth + action implementations
         icon.png
     tests/
       contacts.test.ts
