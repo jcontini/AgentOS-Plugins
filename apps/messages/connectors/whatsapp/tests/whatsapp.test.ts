@@ -10,15 +10,15 @@
 import { describe, it, expect } from 'vitest';
 import { aos } from '../../../../../tests/utils/fixtures';
 
-const CONNECTOR = 'whatsapp';
+const app = 'whatsapp';
 
 describe('WhatsApp Connector', () => {
   describe('get_profile_photo', () => {
     it('returns contact info for a real WhatsApp contact', async () => {
       // Get real WhatsApp conversations
-      const conversations = await aos().call('Messages', {
+      const conversations = await aos().call('Apps', {
+        app,
         action: 'list_conversations',
-        connector: CONNECTOR,
         params: { limit: 20 }
       });
 
@@ -35,9 +35,9 @@ describe('WhatsApp Connector', () => {
       // Extract phone from JID (e.g., "12125551234@s.whatsapp.net" -> "12125551234")
       const phone = directConvo.contact_jid.split('@')[0];
 
-      const results = await aos().call('Messages', {
+      const results = await aos().call('Apps', {
+        app,
         action: 'get_profile_photo',
-        connector: CONNECTOR,
         params: { phone }
       });
 
@@ -75,18 +75,18 @@ describe('WhatsApp Connector', () => {
 
     it('returns expected structure for contact not in WhatsApp contacts DB', async () => {
       // Get a real conversation first to ensure WhatsApp is working
-      const conversations = await aos().call('Messages', {
+      const conversations = await aos().call('Apps', {
+        app,
         action: 'list_conversations',
-        connector: CONNECTOR,
         params: { limit: 5 }
       });
       expect(conversations.length).toBeGreaterThan(0);
 
       // Now query with a number that exists in format but not in contacts
       // Use the structure of a real number but with zeros
-      const results = await aos().call('Messages', {
+      const results = await aos().call('Apps', {
+        app,
         action: 'get_profile_photo',
-        connector: CONNECTOR,
         params: { phone: '10000000000' }  // Valid format, unlikely to exist
       });
 

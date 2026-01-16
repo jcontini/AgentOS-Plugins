@@ -4,6 +4,7 @@ name: WhatsApp
 description: Read WhatsApp messages from local macOS database
 icon: icon.svg
 color: "#25D366"
+tags: [messages, chat, conversations]
 
 website: https://www.whatsapp.com/
 platform: macos
