@@ -31,57 +31,63 @@ describe('Instagram Connector', () => {
   });
 
   describe.skip('Read Operations', () => {
+    const app = 'instagram';
+    const baseParams = { app };
+
     it('should list conversations', async () => {
-      const result = await aos().call('Messages', {
-        action: 'list_conversations',
-        connector: 'instagram'
+      const result = await aos().call('Apps', {
+        ...baseParams,
+        action: 'list_conversations'
       });
       expect(result).toBeDefined();
     });
 
     it('should get conversation by id', async () => {
       // Need a real thread_id
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'get_conversation',
-        connector: 'instagram',
         params: { conversation_id: 'test_thread_id' }
       });
       expect(result).toBeDefined();
     });
 
     it('should list messages in conversation', async () => {
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'list',
-        connector: 'instagram',
         params: { conversation_id: 'test_thread_id', limit: 20 }
       });
       expect(result).toBeDefined();
     });
 
     it('should search messages', async () => {
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'search',
-        connector: 'instagram',
         params: { query: 'hello' }
       });
       expect(result).toBeDefined();
     });
 
     it('should get unread messages', async () => {
-      const result = await aos().call('Messages', {
-        action: 'get_unread',
-        connector: 'instagram'
+      const result = await aos().call('Apps', {
+        ...baseParams,
+        action: 'get_unread'
       });
       expect(result).toBeDefined();
     });
   });
 
   describe.skip('Write Operations', () => {
+    const app = 'instagram';
+    const baseParams = { app };
+
     it('should send a message', async () => {
       const content = testContent('test message');
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'send',
-        connector: 'instagram',
         params: { conversation_id: 'test_thread_id', content },
         execute: true
       });
@@ -89,9 +95,9 @@ describe('Instagram Connector', () => {
     });
 
     it('should react to a message', async () => {
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'react',
-        connector: 'instagram',
         params: {
           conversation_id: 'test_thread_id',
           message_id: 'test_item_id',
@@ -103,9 +109,9 @@ describe('Instagram Connector', () => {
     });
 
     it('should mark message as read', async () => {
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'mark_read',
-        connector: 'instagram',
         params: {
           conversation_id: 'test_thread_id',
           message_id: 'test_item_id'
@@ -118,17 +124,17 @@ describe('Instagram Connector', () => {
     it('should delete a message', async () => {
       // First send a test message
       const content = testContent('to delete');
-      const sendResult = await aos().call('Messages', {
+      const sendResult = await aos().call('Apps', {
+        ...baseParams,
         action: 'send',
-        connector: 'instagram',
         params: { conversation_id: 'test_thread_id', content },
         execute: true
       });
-      
+
       // Then delete it
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'delete',
-        connector: 'instagram',
         params: {
           conversation_id: 'test_thread_id',
           message_id: sendResult.id
@@ -140,10 +146,13 @@ describe('Instagram Connector', () => {
   });
 
   describe.skip('Presence', () => {
+    const app = 'instagram';
+    const baseParams = { app };
+
     it('should get presence status', async () => {
-      const result = await aos().call('Messages', {
+      const result = await aos().call('Apps', {
+        ...baseParams,
         action: 'get_presence',
-        connector: 'instagram',
         params: { user_ids: ['test_user_id'] }
       });
       expect(result).toBeDefined();
