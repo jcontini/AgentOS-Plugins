@@ -15,7 +15,7 @@ describe('Apple Contacts Connector', () => {
 
   beforeAll(async () => {
     const accounts = await aos().call('Connect', {
-      app,
+      connector,
       action: 'accounts'
     });
     const defaultAccount = accounts.find((a: any) => a.is_default);
@@ -29,7 +29,7 @@ describe('Apple Contacts Connector', () => {
     it('returns phones, emails, urls in list response', async () => {
       // List should include these fields (added in Jan 2026)
       const contacts = await aos().call('Connect', {
-        app,
+        connector,
         action: 'list',
         params: { account: defaultAccountId, limit: 10 }
       });
@@ -50,7 +50,7 @@ describe('Apple Contacts Connector', () => {
     it('returns comma-separated values for multi-value fields', async () => {
       // Find a contact with multiple emails or phones
       const contacts = await aos().call('Connect', {
-        app,
+        connector,
         action: 'list',
         params: { account: defaultAccountId, limit: 50 }
       });

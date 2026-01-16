@@ -73,7 +73,7 @@ describe('Linear Connector', () => {
       for (const task of tasks) {
         expect(task.id).toBeDefined();
         expect(task.title).toBeDefined();
-        expect(task.connector).toBe(app);
+        expect(task.connector).toBe(connector);
         
         // Linear-specific: should have source_id (e.g., "AGE-123")
         expect(task.source_id).toBeDefined();

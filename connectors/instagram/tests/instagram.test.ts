@@ -32,7 +32,7 @@ describe('Instagram Connector', () => {
 
   describe.skip('Read Operations', () => {
     const connector = 'instagram';
-    const baseParams = { app };
+    const baseParams = { connector };
 
     it('should list conversations', async () => {
       const result = await aos().call('Connect', {
@@ -81,7 +81,7 @@ describe('Instagram Connector', () => {
 
   describe.skip('Write Operations', () => {
     const connector = 'instagram';
-    const baseParams = { app };
+    const baseParams = { connector };
 
     it('should send a message', async () => {
       const content = testContent('test message');
@@ -147,7 +147,7 @@ describe('Instagram Connector', () => {
 
   describe.skip('Presence', () => {
     const connector = 'instagram';
-    const baseParams = { app };
+    const baseParams = { connector };
 
     it('should get presence status', async () => {
       const result = await aos().call('Connect', {

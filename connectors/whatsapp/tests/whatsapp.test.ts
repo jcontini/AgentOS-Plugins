@@ -17,7 +17,7 @@ describe('WhatsApp Connector', () => {
     it('returns contact info for a real WhatsApp contact', async () => {
       // Get real WhatsApp conversations
       const conversations = await aos().call('Connect', {
-        app,
+        connector,
         action: 'list_conversations',
         params: { limit: 20 }
       });
@@ -36,7 +36,7 @@ describe('WhatsApp Connector', () => {
       const phone = directConvo.contact_jid.split('@')[0];
 
       const results = await aos().call('Connect', {
-        app,
+        connector,
         action: 'get_profile_photo',
         params: { phone }
       });
@@ -76,7 +76,7 @@ describe('WhatsApp Connector', () => {
     it('returns expected structure for contact not in WhatsApp contacts DB', async () => {
       // Get a real conversation first to ensure WhatsApp is working
       const conversations = await aos().call('Connect', {
-        app,
+        connector,
         action: 'list_conversations',
         params: { limit: 5 }
       });
@@ -85,7 +85,7 @@ describe('WhatsApp Connector', () => {
       // Now query with a number that exists in format but not in contacts
       // Use the structure of a real number but with zeros
       const results = await aos().call('Connect', {
-        app,
+        connector,
         action: 'get_profile_photo',
         params: { phone: '10000000000' }  // Valid format, unlikely to exist
       });
