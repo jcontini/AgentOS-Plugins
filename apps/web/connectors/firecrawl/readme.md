@@ -4,6 +4,7 @@ name: Firecrawl
 description: Web scraping with browser rendering for JS-heavy sites
 icon: icon.png
 color: "#FF6B35"
+tags: [web, search, scraping]
 
 website: https://firecrawl.dev
 privacy_url: https://www.firecrawl.dev/privacy
