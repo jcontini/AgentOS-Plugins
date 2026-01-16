@@ -1,24 +1,45 @@
-# Fast schema validation only (blocks malformed YAML)
+# Pre-commit: Fast validation (~1s)
+# - Schema validation (catches malformed YAML)
+# - Security checks (catches credential exposure)
 # Full integration tests run on pre-push
 
-# Get staged readme.md files
 STAGED_READMES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^apps/[^/]+/readme\.md$' || true)
 
 if [ -z "$STAGED_READMES" ]; then
-  echo "✅ No connector readme.md files staged"
   exit 0
 fi
 
-echo "📋 Validating YAML schema..."
+ERRORS=0
 
-# Extract app names
+# === Schema Validation ===
+echo "📋 Schema validation..."
 APPS=$(echo "$STAGED_READMES" | sed 's|apps/||' | sed 's|/readme.md||' | tr '\n' ' ')
+node tests/scripts/validate-schema.mjs $APPS || ERRORS=$((ERRORS + 1))
 
-# Run fast schema validation
-node scripts/validate-schema.mjs $APPS
+# === Security Checks ===
+echo ""
+echo "🔒 Security checks..."
 
-if [ $? -ne 0 ]; then
+# Check for credential exposure patterns
+if echo "$STAGED_READMES" | xargs grep -l '\$AUTH_TOKEN\|\${AUTH_TOKEN}' 2>/dev/null; then
+  echo "❌ BLOCKED: \$AUTH_TOKEN found - use rest: or graphql: blocks instead"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if echo "$STAGED_READMES" | xargs grep -l 'curl.*[Aa]uthorization\|wget' 2>/dev/null; then
+  echo "❌ BLOCKED: curl/wget with auth - use AgentOS executors (rest:, graphql:, sql:)"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if echo "$STAGED_READMES" | xargs grep -l 'Bearer \$' 2>/dev/null; then
+  echo "❌ BLOCKED: Bearer token interpolation - AgentOS handles auth automatically"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ $ERRORS -eq 0 ]; then
+  echo "✅ All checks passed"
+else
   echo ""
-  echo "❌ Fix YAML errors before committing"
+  echo "❌ Fix $ERRORS error(s) before committing"
   exit 1
 fi

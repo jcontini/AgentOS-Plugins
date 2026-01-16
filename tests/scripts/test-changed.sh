@@ -53,7 +53,7 @@ echo ""
 
 # First, run schema validation
 echo "📋 Schema validation..."
-node scripts/validate-schema.mjs $AFFECTED_APPS || exit 1
+node tests/scripts/validate-schema.mjs $AFFECTED_APPS || exit 1
 echo ""
 
 TESTED=0
