@@ -20,7 +20,7 @@ views:
       - component: url-bar
         props:
           mode: search
-          value: "{{activity.request.query}}"
+          value: "{{activity.request.params.query}}"
           source: "{{activity.connector}}"
           sourceIcon: "/plugins/{{activity.connector}}/icon.png"
     
@@ -47,7 +47,7 @@ views:
       - component: url-bar
         props:
           mode: url
-          value: "{{activity.request.url}}"
+          value: "{{activity.request.params.url}}"
           source: "{{activity.connector}}"
           sourceIcon: "/plugins/{{activity.connector}}/icon.png"
     

@@ -67,6 +67,8 @@ operations:
     returns: webpage
     params:
       url: { type: string, required: true, description: "URL to scrape" }
+      wait_for_js: { type: integer, default: 0, description: "Milliseconds to wait for JS (0=fast, 1000+=for SPAs)" }
+      timeout: { type: integer, default: 30000, description: "Request timeout in ms" }
     rest:
       method: POST
       url: https://api.firecrawl.dev/v1/scrape
@@ -75,6 +77,8 @@ operations:
         formats:
           - markdown
         onlyMainContent: true
+        waitFor: "{{params.wait_for_js | default:0}}"
+        timeout: "{{params.timeout | default:30000}}"
       response:
         root: "/data"
         mapping:
