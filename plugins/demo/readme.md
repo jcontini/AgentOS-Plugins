@@ -5,33 +5,9 @@ description: Demos using free public APIs - no API keys needed!
 icon: icon.svg
 tags: [demo, examples]
 
-# Minimal adapters (required by schema, but demo has no real entity operations)
-adapters:
-  webpage:
-    mapping: {}
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# OPERATIONS
-# ═══════════════════════════════════════════════════════════════════════════════
-
-operations:
-  # Demonstrates REST executor with response.root extraction
-  webpage.search:
-    description: Search the web via DuckDuckGo Instant Answer API
-    returns: webpage[]
-    params:
-      query: { type: string, required: true, description: "Search query" }
-    rest:
-      method: GET
-      url: "https://api.duckduckgo.com/"
-      query:
-        q: "{{params.query}}"
-        format: "json"
-      response:
-        root: "/RelatedTopics"
-        mapping:
-          url: ".FirstURL"
-          title: ".Text"
+# Empty adapters/operations — demo is utility-only
+adapters: {}
+operations: {}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UTILITIES
@@ -117,11 +93,10 @@ utilities:
 instructions: |
   Demo plugin using free public APIs - no keys needed!
   
-  Demonstrates each executor type:
+  Demonstrates executor types:
   - Command: echo (shell command)
   - REST GET: http_get, get_ip, get_iss_position
   - REST POST: http_post
-  - Operation: webpage.search (DuckDuckGo)
 ---
 
 # Demo
@@ -137,7 +112,6 @@ Showcase plugin using free public APIs. No API keys required!
 | `get_ip` | REST | GET with response mapping |
 | `get_iss_position` | REST | Nested response extraction |
 | `http_post` | REST | POST with request body |
-| `webpage.search` | REST | Operation returning entities |
 
 ## Examples
 
@@ -152,11 +126,8 @@ UsePlugin(plugin: "demo", tool: "get_iss_position")
 
 # REST POST
 UsePlugin(plugin: "demo", tool: "http_post", params: {data: "test"})
-
-# Operation (returns webpage[])
-UsePlugin(plugin: "demo", tool: "webpage.search", params: {query: "rust programming"})
 ```
 
 ## For Contributors
 
-This plugin demonstrates each executor and pattern type. Use it as a reference when building new plugins.
+This plugin demonstrates executor types using free public APIs. Use it as a reference when building new plugins.

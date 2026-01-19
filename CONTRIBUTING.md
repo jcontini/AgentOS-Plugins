@@ -76,7 +76,16 @@ Plugins are adapters that transform service-specific API responses into universa
 
 ### Structure
 
+```
+plugins/{name}/
+  readme.md     # Plugin definition (YAML front matter + markdown docs)
+  icon.png      # Required — 128x128 or larger PNG icon
+  icon.svg      # Optional — vector version
+  tests/        # Functional tests
+```
+
 ```yaml
+# readme.md YAML front matter
 adapters:     # How API data maps to entity schemas
 operations:   # Entity CRUD (returns: entity, entity[], or void)
 utilities:    # Helpers with custom return shapes (optional)
@@ -279,6 +288,7 @@ operations:
 
 ### Checklist
 
+- [ ] `icon.png` exists (128x128 or larger)
 - [ ] `npm run validate` passes (schema validation)
 - [ ] Parameters verified against API docs
 - [ ] Mapping covers entity properties (`entities/{entity}.yaml`)

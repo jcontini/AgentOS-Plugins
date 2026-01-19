@@ -119,6 +119,14 @@ for (const app of apps) {
     continue;
   }
 
+  // Check icon.png exists (required for all plugins)
+  const iconPath = join(pluginDir, 'icon.png');
+  if (!existsSync(iconPath)) {
+    console.error(`❌ plugins/${app}: icon.png not found (required)`);
+    hasErrors = true;
+    continue;
+  }
+
   // Check test coverage (only for valid plugins)
   const tools = getTools(frontmatter);
   const testedTools = getTestedTools(pluginDir);
