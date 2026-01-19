@@ -6,14 +6,18 @@ name: Browser
 icon: globe
 description: Watch AI search the web and read pages
 
-# What activities this app displays
-displays:
+# Primary entity type for routing
+entity: web
+
+# Capabilities this app handles (for activity routing)
+handles:
   - web_search
   - web_read
 
 views:
   # Search results view - shows web_search activity
   search:
+    capability: web_search
     title: Browser
     toolbar:
       - component: url-bar
@@ -41,6 +45,7 @@ views:
 
   # Read view - shows web_read activity
   read:
+    capability: web_read
     title: "{{activity.response.title}}"
     toolbar:
       - component: url-bar
