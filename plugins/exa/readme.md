@@ -26,7 +26,7 @@ instructions: |
 # Entity implementations
 # Structure: entities.{entity}.{operation} = executor
 entities:
-  web:
+  webpage:
     search:
       label: "Search web"
       rest:

@@ -8,12 +8,12 @@ description: Watch AI search the web and read pages
 
 # Entity types this app displays
 entities:
-  - web
+  - webpage
 
 views:
-  # Search results view - shows web.search activities
+  # Search results view - shows webpage.search activities
   search:
-    entity: web
+    entity: webpage
     operation: search
     title: Browser
     toolbar:
@@ -38,9 +38,9 @@ views:
           source: "{{activity.connector}}"
           duration: "{{activity.duration_ms}}"
 
-  # Read view - shows web.read activities
+  # Read view - shows webpage.read activities
   read:
-    entity: web
+    entity: webpage
     operation: read
     title: "{{activity.response.title}}"
     toolbar:

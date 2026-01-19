@@ -1,9 +1,9 @@
-# Web Entity
-# Web content - search results or page content
+# Webpage Entity
+# A web page - can be a search result preview or full page content
 
-id: web
+id: webpage
 name: Web Page
-description: Web content - search results or page content
+description: A web page with URL, title, and content
 
 schema:
   url:
@@ -45,7 +45,7 @@ operations:
         type: integer
         default: 10
         description: Maximum number of results
-    returns: web[]
+    returns: webpage[]
   
   read:
     description: Read/extract content from a URL
@@ -55,7 +55,7 @@ operations:
         format: url
         required: true
         description: URL to read
-    returns: web
+    returns: webpage
 
 display:
   primary: title
