@@ -3,7 +3,7 @@
 
 id: browser
 name: Browser
-icon: globe
+icon: icon.svg
 description: Watch AI search the web and read pages
 
 # Entity types this app displays
