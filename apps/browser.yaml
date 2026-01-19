@@ -19,9 +19,10 @@ views:
       - component: url-bar
         props:
           mode: search
-          query: "{{activity.request.query}}"
+          value: "{{activity.request.query}}"
           loading: "{{activity.pending}}"
           source: "{{activity.connector}}"
+          sourceIcon: "/plugins/{{activity.connector}}/icon.png"
     
     layout:
       - component: list

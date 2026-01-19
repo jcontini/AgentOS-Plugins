@@ -16,7 +16,6 @@
 }
 
 body {
-  background-color: #000;
   color: var(--window-fg);
 }
 
@@ -1031,6 +1030,8 @@ progress:not([value])::-webkit-progress-value {
   box-shadow: -1px -1px #888, 1px 1px #fff;
   overflow: auto;
   cursor: default;
+  flex: 1;          /* Grow to fill available space in flex containers */
+  min-height: 0;    /* Allow shrinking below content size */
 }
 .list > [role=option] {
   padding: 2px 6px 2px 6px;
@@ -1479,6 +1480,8 @@ progress:not([value])::-webkit-progress-value {
   border-top: 1px solid #aaa;
   font-size: 11px;
   color: #555;
+  margin-top: auto; /* Push to bottom of flex container */
+  flex-shrink: 0;   /* Don't shrink when content is tall */
 }
 
 .activity-footer-left {
