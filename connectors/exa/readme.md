@@ -39,14 +39,11 @@ actions:
       response:
         root: "results"
         mapping:
-          # web_search schema: { results: [{ url, title, snippet, published_at? }] }
-          results:
-            each: "[]"
-            map:
-              url: ".url"
-              title: ".title"
-              snippet: ".text"
-              published_at: ".publishedDate"
+          # Map each result item to web_search schema fields
+          url: ".url"
+          title: ".title"
+          snippet: ".text"
+          published_at: ".publishedDate"
 
   read:
     provides: web_read

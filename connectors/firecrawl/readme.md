@@ -40,13 +40,10 @@ actions:
       response:
         root: "data"
         mapping:
-          # web_search schema: { results: [{ url, title, snippet }] }
-          results:
-            each: "[]"
-            map:
-              url: ".url"
-              title: ".title"
-              snippet: ".description"
+          # Map each result item to web_search schema fields
+          url: ".url"
+          title: ".title"
+          snippet: ".description"
 
   read:
     provides: web_read
