@@ -4,11 +4,7 @@
   "title": "AgentOS Plugin",
   "description": "Schema for AgentOS plugin readme.md frontmatter",
   "type": "object",
-  "required": ["id", "name", "description", "tags"],
-  "anyOf": [
-    { "required": ["entities"] },
-    { "required": ["actions"] }
-  ],
+  "required": ["id", "name", "description", "tags", "adapters", "operations"],
   "properties": {
     "id": {
       "type": "string",
@@ -64,40 +60,162 @@
         }
       ]
     },
-    "terminology": {
+    "adapters": {
       "type": "object",
-      "description": "Maps entity IDs to service-specific display names (e.g., task → Issue for Linear)",
+      "description": "Entity adapters that transform API data into universal entity format. Each key is an entity type.",
       "additionalProperties": {
-        "type": "string"
+        "$ref": "#/definitions/adapter"
       }
     },
-    "relationships": {
+    "operations": {
       "type": "object",
-      "description": "Relationship support declarations (keyed by relationship ID from graph.yaml)",
+      "description": "Entity operations (e.g., task.list, message.send). Naming: {entity}.{operation}",
+      "propertyNames": {
+        "pattern": "^[a-z_]+\\.[a-z_]+$"
+      },
       "additionalProperties": {
-        "$ref": "#/definitions/relationshipSupport"
+        "$ref": "#/definitions/operation"
       }
     },
-    "entities": {
+    "utilities": {
       "type": "object",
-      "description": "Entity-based operations (e.g., entities.webpage.search)",
+      "description": "Helper operations that return custom shapes (not entities). Naming: verb_noun",
+      "propertyNames": {
+        "pattern": "^[a-z_]+$"
+      },
       "additionalProperties": {
-        "type": "object",
-        "description": "Operations for this entity",
-        "additionalProperties": {
-          "$ref": "#/definitions/singleAction"
-        }
+        "$ref": "#/definitions/utility"
       }
     },
-    "actions": {
-      "type": "object",
-      "description": "Action implementations (legacy format, use entities instead)",
-      "additionalProperties": {
-        "$ref": "#/definitions/action"
-      }
+    "instructions": {
+      "type": "string",
+      "description": "Free-form instructions for AI about how to use this plugin"
     }
   },
   "definitions": {
+    "adapter": {
+      "type": "object",
+      "description": "Entity adapter that transforms API data into universal entity format",
+      "required": ["mapping"],
+      "properties": {
+        "terminology": {
+          "type": "string",
+          "description": "What this service calls this entity (e.g., 'Issue' for Linear's tasks)"
+        },
+        "relationships": {
+          "type": "object",
+          "description": "Which graph relationships are supported for this entity",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["full", "read_only", "write_only", "none"],
+            "description": "Level of support: full (read+write), read_only, write_only, none"
+          }
+        },
+        "mapping": {
+          "type": "object",
+          "description": "API response → entity property mappings. Defined once, applied to all operations returning this entity.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "description": "JMESPath expression (e.g., '.id', '.content', '5 - .priority')" },
+              { "type": "null", "description": "Not provided by this API" }
+            ]
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "description": "Entity operation that returns typed entities",
+      "required": ["returns"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this operation does"
+        },
+        "returns": {
+          "type": "string",
+          "description": "Return type: entity name, entity[], or void",
+          "pattern": "^([a-z_]+\\[\\]?|void)$"
+        },
+        "params": {
+          "type": "object",
+          "description": "Operation parameters",
+          "additionalProperties": {
+            "$ref": "#/definitions/paramDef"
+          }
+        },
+        "rest": {
+          "$ref": "#/definitions/restExecutor"
+        },
+        "graphql": {
+          "$ref": "#/definitions/graphqlExecutor"
+        },
+        "sql": {
+          "$ref": "#/definitions/sqlExecutor"
+        },
+        "command": {
+          "$ref": "#/definitions/commandExecutor"
+        },
+        "swift": {
+          "$ref": "#/definitions/swiftExecutor"
+        },
+        "csv": {
+          "$ref": "#/definitions/csvExecutor"
+        }
+      }
+    },
+    "utility": {
+      "type": "object",
+      "description": "Helper operation that returns a custom shape (not an entity)",
+      "required": ["returns"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this utility does"
+        },
+        "returns": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Inline schema for the return value",
+              "additionalProperties": {
+                "type": "string",
+                "description": "Property type (string, boolean, integer, datetime, etc.)"
+              }
+            },
+            {
+              "type": "string",
+              "description": "Simple return type (e.g., 'boolean', 'string')"
+            }
+          ]
+        },
+        "params": {
+          "type": "object",
+          "description": "Utility parameters",
+          "additionalProperties": {
+            "$ref": "#/definitions/paramDef"
+          }
+        },
+        "rest": {
+          "$ref": "#/definitions/restExecutor"
+        },
+        "graphql": {
+          "$ref": "#/definitions/graphqlExecutor"
+        },
+        "sql": {
+          "$ref": "#/definitions/sqlExecutor"
+        },
+        "command": {
+          "$ref": "#/definitions/commandExecutor"
+        },
+        "swift": {
+          "$ref": "#/definitions/swiftExecutor"
+        },
+        "csv": {
+          "$ref": "#/definitions/csvExecutor"
+        }
+      }
+    },
     "auth": {
       "type": "object",
       "description": "Authentication configuration",
@@ -156,61 +274,6 @@
         }
       }
     },
-    "action": {
-      "oneOf": [
-        { "$ref": "#/definitions/singleAction" },
-        {
-          "type": "array",
-          "description": "Chained actions (executed in sequence)",
-          "items": { "$ref": "#/definitions/singleAction" }
-        }
-      ]
-    },
-    "singleAction": {
-      "type": "object",
-      "description": "Single action implementation",
-      "properties": {
-        "operation": {
-          "type": "string",
-          "description": "(DEPRECATED - implicit from structure) CRUD operation type",
-          "enum": ["read", "create", "update", "delete"]
-        },
-        "provides": {
-          "type": "string",
-          "description": "(DEPRECATED - implicit from structure) Capability this action provides"
-        },
-        "label": {
-          "type": "string",
-          "description": "Human-readable action label"
-        },
-        "params": {
-          "type": "object",
-          "description": "Action parameters",
-          "additionalProperties": {
-            "$ref": "#/definitions/paramDef"
-          }
-        },
-        "as": {
-          "type": "string",
-          "description": "Variable name for storing result in chained actions"
-        },
-        "rest": {
-          "$ref": "#/definitions/restExecutor"
-        },
-        "graphql": {
-          "$ref": "#/definitions/graphqlExecutor"
-        },
-        "sql": {
-          "$ref": "#/definitions/sqlExecutor"
-        },
-        "command": {
-          "$ref": "#/definitions/commandExecutor"
-        },
-        "swift": {
-          "$ref": "#/definitions/swiftExecutor"
-        }
-      }
-    },
     "paramDef": {
       "type": "object",
       "description": "Parameter definition",
@@ -257,8 +320,18 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
+        "query": {
+          "type": "object",
+          "description": "Query string parameters",
+          "additionalProperties": { "type": "string" }
+        },
         "body": {
           "description": "Request body (for POST/PUT/PATCH)"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": ["json", "form"],
+          "description": "Body encoding (default: json)"
         },
         "response": {
           "$ref": "#/definitions/responseMapping"
@@ -300,17 +373,17 @@
         "database": {
           "type": "string",
           "description": "Database path (overrides plugin-level)"
+        },
+        "response": {
+          "$ref": "#/definitions/responseMapping"
         }
       }
     },
     "commandExecutor": {
       "type": "object",
       "description": "Shell command",
+      "required": ["binary"],
       "properties": {
-        "run": {
-          "type": "string",
-          "description": "Command to execute (supports {{params.x}} templates)"
-        },
         "binary": {
           "type": "string",
           "description": "Binary to execute"
@@ -319,6 +392,25 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Arguments (supports {{params.x}} templates)"
+        },
+        "args_string": {
+          "type": "string",
+          "description": "Arguments as single string (split on whitespace)"
+        },
+        "stdin": {
+          "type": "string",
+          "description": "Content to pass via stdin"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout in seconds (default: 60)"
+        },
+        "working_dir": {
+          "type": "string",
+          "description": "Working directory"
+        },
+        "response": {
+          "$ref": "#/definitions/responseMapping"
         }
       }
     },
@@ -330,6 +422,28 @@
         "script": {
           "type": "string",
           "description": "Swift code to execute"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arguments to pass to compiled binary"
+        },
+        "response": {
+          "$ref": "#/definitions/responseMapping"
+        }
+      }
+    },
+    "csvExecutor": {
+      "type": "object",
+      "description": "CSV file reader",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to CSV file (supports ~ expansion, {{params.x}} templates)"
+        },
+        "response": {
+          "$ref": "#/definitions/responseMapping"
         }
       }
     },
@@ -339,28 +453,24 @@
       "properties": {
         "root": {
           "type": "string",
-          "description": "JSONPath to extract (e.g., 'data.items')"
+          "description": "JMESPath to extract data (e.g., 'data.items', 'thread.items')"
+        },
+        "context": {
+          "type": "object",
+          "description": "Capture values from response for use in mapping (e.g., viewer_id: thread.viewer_id)",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "mapping": {
           "type": "object",
-          "description": "Field mappings (target: jmespath or nested object)",
+          "description": "Field mappings for utilities (operations use adapters.{entity}.mapping instead)",
           "additionalProperties": true
-        }
-      }
-    },
-    "relationshipSupport": {
-      "type": "object",
-      "description": "How this plugin supports a relationship",
-      "required": ["support"],
-      "properties": {
-        "support": {
-          "type": "string",
-          "enum": ["full", "read_only", "write_only", "none"],
-          "description": "Level of support: full (read+write), read_only, write_only, none"
         },
-        "field": {
-          "type": "string",
-          "description": "API response field that contains the relationship data (e.g., 'project_id')"
+        "static": {
+          "type": "object",
+          "description": "Static response for operations that don't return data (e.g., complete returns { id, completed: true })",
+          "additionalProperties": true
         }
       }
     }
