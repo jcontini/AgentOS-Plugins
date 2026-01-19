@@ -2,6 +2,7 @@
  * Search Result Item Component
  * 
  * Renders a single web search result with title, URL, and optional snippet.
+ * Uses the Text primitive for consistent overflow and truncation handling.
  * Used by the Browser app's search view within a list component.
  * 
  * @example
@@ -9,13 +10,16 @@
  * - component: list
  *   data:
  *     capability: web_search
- *   item_component: search-result
+ *   item_component: items/search-result
  *   item_props:
  *     title: "{{title}}"
  *     url: "{{url}}"
  *     snippet: "{{snippet}}"
  * ```
  */
+
+import React from 'react';
+import { Text } from '../text';
 
 interface SearchResultProps {
   /** Result title - displayed prominently */
@@ -24,17 +28,39 @@ interface SearchResultProps {
   url: string;
   /** Optional snippet/description */
   snippet?: string;
+  /** Maximum lines for title (default: 2) */
+  titleMaxLines?: number;
+  /** Overflow behavior for URL (default: ellipsis) */
+  urlOverflow?: 'truncate' | 'ellipsis' | 'wrap';
 }
 
-export function SearchResult({ title, url, snippet }: SearchResultProps) {
+export function SearchResult({
+  title,
+  url,
+  snippet,
+  titleMaxLines = 2,
+  urlOverflow = 'ellipsis',
+}: SearchResultProps) {
   return (
     <div className="search-result">
-      <a className="search-result-title" href={url} target="_blank" rel="noopener">
+      <Text
+        variant="title"
+        as="a"
+        href={url}
+        target="_blank"
+        overflow="ellipsis"
+        maxLines={titleMaxLines}
+        className="search-result-title"
+      >
         {title}
-      </a>
-      <span className="search-result-url">{url}</span>
+      </Text>
+      <Text variant="url" overflow={urlOverflow} maxLines={1} className="search-result-url">
+        {url}
+      </Text>
       {snippet && (
-        <p className="search-result-snippet">{snippet}</p>
+        <Text variant="body" maxLines={3} className="search-result-snippet" as="p">
+          {snippet}
+        </Text>
       )}
     </div>
   );
