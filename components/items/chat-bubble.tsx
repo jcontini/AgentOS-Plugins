@@ -9,7 +9,7 @@
  * - component: list
  *   data:
  *     capability: message_list
- *   item_component: chat-bubble
+ *   item_component: items/chat-bubble
  *   item_props:
  *     content: "{{content}}"
  *     sender: "{{sender_name}}"
@@ -18,6 +18,9 @@
  * ```
  */
 
+// Import shared utilities from the framework
+import { formatTime } from '/lib/utils.js';
+
 interface ChatBubbleProps {
   /** Message content */
   content: string;
@@ -25,7 +28,7 @@ interface ChatBubbleProps {
   sender: string;
   /** Whether this message was sent by the current user */
   is_self: boolean;
-  /** Message timestamp */
+  /** Message timestamp (ISO string) */
   timestamp: string;
   /** Sender's avatar URL */
   avatar?: string;
@@ -63,11 +66,6 @@ export function ChatBubble({
       </div>
     </div>
   );
-}
-
-function formatTime(timestamp: string): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function getStatusIcon(status: string): string {
