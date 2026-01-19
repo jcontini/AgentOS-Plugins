@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://agentos.dev/schemas/connector.schema.json",
-  "title": "AgentOS Connector",
-  "description": "Schema for AgentOS connector readme.md frontmatter",
+  "$id": "https://agentos.dev/schemas/plugin.schema.json",
+  "title": "AgentOS Plugin",
+  "description": "Schema for AgentOS plugin readme.md frontmatter",
   "type": "object",
   "required": ["id", "name", "description", "tags", "actions"],
   "properties": {
