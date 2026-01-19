@@ -235,6 +235,25 @@ function StringMapControl({ setting, onUpdate, updating }: SettingControlProps) 
 function HandlersControl({ setting, onUpdate, updating }: SettingControlProps) {
   const handlers = (setting.value as Array<{ pattern: string; plugin: string }>) || [];
   
+  // Group handlers by plugin
+  const grouped = new Map<string, string[]>();
+  for (const handler of handlers) {
+    const patterns = grouped.get(handler.plugin) || [];
+    patterns.push(handler.pattern);
+    grouped.set(handler.plugin, patterns);
+  }
+  
+  // Sort plugins alphabetically, but keep "*" fallback at the end
+  const sortedPlugins = Array.from(grouped.entries()).sort(([a], [b]) => {
+    const aPatterns = grouped.get(a) || [];
+    const bPatterns = grouped.get(b) || [];
+    const aIsFallback = aPatterns.some(p => p === '*');
+    const bIsFallback = bPatterns.some(p => p === '*');
+    if (aIsFallback && !bIsFallback) return 1;
+    if (!aIsFallback && bIsFallback) return -1;
+    return a.localeCompare(b);
+  });
+  
   return (
     <div className="setting-item">
       <span className="setting-label">{setting.label}</span>
@@ -245,11 +264,14 @@ function HandlersControl({ setting, onUpdate, updating }: SettingControlProps) {
         {handlers.length === 0 ? (
           <div className="setting-handlers-empty">No handlers configured</div>
         ) : (
-          handlers.map((handler, i) => (
-            <div key={i} className="setting-handler-entry">
-              <span className="setting-handler-pattern">{handler.pattern}</span>
-              <span className="setting-handler-arrow">→</span>
-              <span className="setting-handler-plugin">{handler.plugin}</span>
+          sortedPlugins.map(([plugin, patterns]) => (
+            <div key={plugin} className="setting-handler-entry">
+              <span className="setting-handler-plugin">{plugin}</span>
+              <div className="setting-handler-patterns">
+                {patterns.map((pattern, i) => (
+                  <span key={i} className="setting-handler-pattern">{pattern}</span>
+                ))}
+              </div>
             </div>
           ))
         )}

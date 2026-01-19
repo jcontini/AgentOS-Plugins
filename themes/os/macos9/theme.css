@@ -3083,11 +3083,11 @@ progress:not([value])::-webkit-progress-value {
   color: #006600;
 }
 
-/* URL/File handlers display */
+/* URL/File handlers display - grouped by plugin */
 .setting-handlers {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin-top: 6px;
 }
 
@@ -3099,29 +3099,36 @@ progress:not([value])::-webkit-progress-value {
 
 .setting-handler-entry {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
   background: #f5f5f5;
   border: 1px solid #ccc;
   border-radius: 3px;
   font-size: 12px;
 }
 
-.setting-handler-pattern {
-  font-family: "Monaco", "Menlo", monospace;
-  font-size: 11px;
-  color: #333;
-}
-
-.setting-handler-arrow {
-  color: #888;
+.setting-handler-plugin {
+  font-weight: bold;
+  font-size: 12px;
+  color: #000;
+  min-width: 80px;
   flex-shrink: 0;
 }
 
-.setting-handler-plugin {
+.setting-handler-patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.setting-handler-pattern {
   font-family: "Monaco", "Menlo", monospace;
-  font-size: 11px;
-  color: #006600;
-  font-weight: 500;
+  font-size: 10px;
+  color: #333;
+  background: #e8e8e8;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
 }
