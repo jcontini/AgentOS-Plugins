@@ -21,6 +21,12 @@ handles:
     - "youtu.be/*"
     - "music.youtube.com/*"
 
+# External sources this plugin needs (for CSP)
+sources:
+  images:
+    - "https://i.ytimg.com/*"      # Video thumbnails
+    - "https://yt3.ggpht.com/*"    # Channel avatars
+
 adapters:
   video:
     terminology: Video
