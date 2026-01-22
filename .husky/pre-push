@@ -16,4 +16,4 @@ echo "$COMMITS" | head -5
 echo ""
 
 # Run full tests for changed apps
-./tests/scripts/test-changed.sh --committed
+./tests/test-changed.sh --committed
