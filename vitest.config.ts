@@ -7,6 +7,11 @@ export default defineConfig({
       'plugins/**/tests/**/*.test.ts',
       'tests/**/*.test.ts',
     ],
+    // Exclude plugins in .needs-work folder
+    exclude: [
+      'plugins/.needs-work/**',
+      'node_modules/**',
+    ],
     
     // Setup file runs in same process as tests
     setupFiles: ['./tests/setup.ts'],

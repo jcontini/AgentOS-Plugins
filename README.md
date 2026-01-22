@@ -77,6 +77,22 @@ cd agentos-community
 npm install    # Sets up pre-commit hooks
 ```
 
+## Testing
+
+**Validation** (schema + test coverage):
+```bash
+npm run validate              # Check all plugins
+```
+
+**Functional tests** (actual API calls):
+```bash
+npm test                      # Run all tests (excludes .needs-work)
+npm run test:needs-work       # Test plugins in .needs-work
+npm test plugins/exa/tests    # Test specific plugin
+```
+
+**The `.needs-work` folder:** Plugins that fail validation are automatically moved to `plugins/.needs-work/` to keep the main directory clean. See [CONTRIBUTING.md](CONTRIBUTING.md#testing) for details.
+
 ## Contributing
 
 See **[CONTRIBUTING.md](CONTRIBUTING.md)** for plugin development, testing, and contribution terms.

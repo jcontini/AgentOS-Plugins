@@ -9,9 +9,10 @@
  * Usage: node scripts/validate-schema.mjs [app1] [app2] ...
  *        node scripts/validate-schema.mjs --all
  *        node scripts/validate-schema.mjs --all --filter exa
+ *        node scripts/validate-schema.mjs --all --no-move  (skip auto-move, for pre-commit)
  */
 
-import { readFileSync, readdirSync, existsSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, renameSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
@@ -21,6 +22,7 @@ import addFormats from 'ajv-formats';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../..');  // tests/scripts/ -> root
 const APPS_DIR = join(ROOT, 'plugins');
+const NEEDS_WORK_DIR = join(APPS_DIR, '.needs-work');
 const SCHEMA_PATH = join(ROOT, 'tests', 'plugin.schema.json');
 
 // Load schema
@@ -70,15 +72,41 @@ function getTestedTools(pluginDir) {
   return testedTools;
 }
 
+// Ensure .needs-work directory exists
+if (!existsSync(NEEDS_WORK_DIR)) {
+  mkdirSync(NEEDS_WORK_DIR, { recursive: true });
+}
+
+// Move plugin to .needs-work
+function moveToNeedsWork(pluginName) {
+  const sourcePath = join(APPS_DIR, pluginName);
+  const destPath = join(NEEDS_WORK_DIR, pluginName);
+  
+  if (existsSync(destPath)) {
+    console.error(`⚠️  plugins/${pluginName}: Already exists in .needs-work, skipping move`);
+    return false;
+  }
+  
+  try {
+    renameSync(sourcePath, destPath);
+    console.log(`📦 Moved plugins/${pluginName} → plugins/.needs-work/${pluginName}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Failed to move plugins/${pluginName}: ${err.message}`);
+    return false;
+  }
+}
+
 // Get all apps or filter by args
 const args = process.argv.slice(2);
 const filterIndex = args.indexOf('--filter');
 const filterValue = filterIndex !== -1 ? args[filterIndex + 1] : null;
 const validateAll = args.includes('--all') || args.length === 0;
+const autoMove = !args.includes('--no-move');  // Auto-move by default, disable with --no-move
 
 let apps = validateAll 
   ? readdirSync(APPS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
+      .filter(d => d.isDirectory() && d.name !== '.needs-work')
       .map(d => d.name)
   : args.filter(a => !a.startsWith('--'));
 
@@ -89,57 +117,72 @@ if (filterValue) {
 
 let hasErrors = false;
 let hasCoverageWarnings = false;
+let movedCount = 0;
 
 for (const app of apps) {
   const pluginDir = join(APPS_DIR, app);
   const readmePath = join(pluginDir, 'readme.md');
+  let failed = false;
+  let failureReason = '';
   
   if (!existsSync(readmePath)) {
     console.error(`❌ plugins/${app}: readme.md not found`);
-    hasErrors = true;
-    continue;
-  }
-
-  const content = readFileSync(readmePath, 'utf-8');
-  const frontmatter = parseFrontmatter(content);
-
-  if (!frontmatter) {
-    console.error(`❌ plugins/${app}: No YAML frontmatter found`);
-    hasErrors = true;
-    continue;
-  }
-
-  const valid = validate(frontmatter);
-  if (!valid) {
-    console.error(`❌ plugins/${app}: Schema validation failed`);
-    for (const err of validate.errors) {
-      console.error(`   ${err.instancePath || '/'}: ${err.message}`);
-    }
-    hasErrors = true;
-    continue;
-  }
-
-  // Check icon.png exists (required for all plugins)
-  const iconPath = join(pluginDir, 'icon.png');
-  if (!existsSync(iconPath)) {
-    console.error(`❌ plugins/${app}: icon.png not found (required)`);
-    hasErrors = true;
-    continue;
-  }
-
-  // Check test coverage (only for valid plugins)
-  const tools = getTools(frontmatter);
-  const testedTools = getTestedTools(pluginDir);
-  const untestedTools = tools.filter(t => !testedTools.has(t));
-  
-  if (untestedTools.length > 0) {
-    console.error(`❌ plugins/${app}: Missing tests for: ${untestedTools.join(', ')}`);
-    hasErrors = true;
-  } else if (tools.length > 0) {
-    console.log(`✓ plugins/${app} (${tools.length} tools, all tested)`);
+    failureReason = 'readme.md not found';
+    failed = true;
   } else {
-    console.log(`✓ plugins/${app}`);
+    const content = readFileSync(readmePath, 'utf-8');
+    const frontmatter = parseFrontmatter(content);
+
+    if (!frontmatter) {
+      console.error(`❌ plugins/${app}: No YAML frontmatter found`);
+      failureReason = 'No YAML frontmatter found';
+      failed = true;
+    } else {
+      const valid = validate(frontmatter);
+      if (!valid) {
+        console.error(`❌ plugins/${app}: Schema validation failed`);
+        for (const err of validate.errors) {
+          console.error(`   ${err.instancePath || '/'}: ${err.message}`);
+        }
+        failureReason = 'Schema validation failed';
+        failed = true;
+      } else {
+        // Check icon.png exists (required for all plugins)
+        const iconPath = join(pluginDir, 'icon.png');
+        if (!existsSync(iconPath)) {
+          console.error(`❌ plugins/${app}: icon.png not found (required)`);
+          failureReason = 'icon.png not found';
+          failed = true;
+        } else {
+          // Check test coverage (only for valid plugins)
+          const tools = getTools(frontmatter);
+          const testedTools = getTestedTools(pluginDir);
+          const untestedTools = tools.filter(t => !testedTools.has(t));
+          
+          if (untestedTools.length > 0) {
+            console.error(`❌ plugins/${app}: Missing tests for: ${untestedTools.join(', ')}`);
+            failureReason = `Missing tests for: ${untestedTools.join(', ')}`;
+            failed = true;
+          } else if (tools.length > 0) {
+            console.log(`✓ plugins/${app} (${tools.length} tools, all tested)`);
+          } else {
+            console.log(`✓ plugins/${app}`);
+          }
+        }
+      }
+    }
   }
+  
+  if (failed) {
+    hasErrors = true;
+    if (autoMove && moveToNeedsWork(app)) {
+      movedCount++;
+    }
+  }
+}
+
+if (movedCount > 0) {
+  console.log(`\n📦 Moved ${movedCount} plugin(s) to plugins/.needs-work/`);
 }
 
 if (hasErrors) {

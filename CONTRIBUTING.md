@@ -687,15 +687,19 @@ CSS and assets in `themes/{family}/{theme-id}/`.
 
 ### Validation
 
-`npm run validate` checks two things:
+`npm run validate` checks three things:
 
 1. **Schema validation** — YAML structure matches `tests/plugin.schema.json`
 2. **Test coverage** — every operation and utility has a test
+3. **Required files** — `icon.png` exists
 
 ```bash
 npm run validate                    # All plugins
 npm run validate -- --filter exa    # Single plugin
+npm run validate -- --no-move       # Validate without auto-moving failures
 ```
+
+**Auto-move behavior:** By default, plugins that fail validation are automatically moved to `plugins/.needs-work/`. This keeps the main plugins directory clean. Use `--no-move` to disable this (useful for pre-commit hooks).
 
 A plugin fails validation if any operation/utility lacks a test. The validator looks for `tool: 'operation.name'` in your test files.
 
@@ -704,9 +708,25 @@ A plugin fails validation if any operation/utility lacks a test. The validator l
 Verify real API behavior:
 
 ```bash
-npm test                                    # All tests
-npx vitest run plugins/exa/tests           # Single plugin
+npm test                                    # All tests (excludes .needs-work)
+npm run test:needs-work                     # Only plugins in .needs-work
+npm test plugins/exa/tests                  # Single plugin
+npm test plugins/.needs-work/whatsapp       # Specific .needs-work plugin
 ```
+
+**Note:** Tests automatically exclude plugins in `plugins/.needs-work/` to focus on working plugins. You can still test specific plugins in `.needs-work` by specifying their path directly.
+
+### The `.needs-work` Folder
+
+Plugins that fail validation are automatically moved to `plugins/.needs-work/`. This includes:
+- Missing `icon.png`
+- Schema validation errors
+- Missing tests for operations/utilities
+
+To fix a plugin in `.needs-work`:
+1. Fix the issues (add icon, fix schema, add tests)
+2. Run `npm run validate` — if it passes, the plugin stays in `.needs-work` (auto-move only happens on failures)
+3. Manually move it back: `mv plugins/.needs-work/my-plugin plugins/my-plugin`
 
 ### Writing Tests
 
@@ -736,7 +756,8 @@ See `plugins/todoist/tests/` or `plugins/apple-calendar/tests/` for comprehensiv
 ```bash
 npm run new-plugin <name>    # Create plugin scaffold
 npm run validate             # Schema validation (run first!)
-npm test                     # Functional tests
+npm test                     # Functional tests (excludes .needs-work)
+npm run test:needs-work      # Test plugins in .needs-work
 ```
 
 ---
