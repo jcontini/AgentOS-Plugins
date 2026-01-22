@@ -102,7 +102,7 @@ const ENTITY_SCHEMAS: Record<string, {
   // Add more entity schemas as needed
 };
 
-// Scan plugins directory to find all plugins with entity operations
+// Recursively scan plugins directory to find all plugins with entity operations
 function findPluginsWithOperations(): Array<{
   plugin: string;
   tool: string;
@@ -117,14 +117,35 @@ function findPluginsWithOperations(): Array<{
   
   if (!fs.existsSync(pluginsDir)) return results;
   
-  const pluginDirs = fs.readdirSync(pluginsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory() && d.name !== '.needs-work')
-    .map(d => d.name);
-  
-  for (const dir of pluginDirs) {
-    const readmePath = path.join(pluginsDir, dir, 'readme.md');
-    if (!fs.existsSync(readmePath)) continue;
+  // Recursively find all plugin directories (ones with readme.md)
+  const findPluginDirs = (dir: string): string[] => {
+    const plugins: string[] = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === '.needs-work') continue;
+      if (entry.name === 'node_modules') continue;
+      if (entry.name === 'tests') continue;
+      
+      const fullPath = path.join(dir, entry.name);
+      
+      // Check if this directory is a plugin (has readme.md)
+      if (fs.existsSync(path.join(fullPath, 'readme.md'))) {
+        plugins.push(fullPath);
+      } else {
+        // It's a category folder, recurse into it
+        plugins.push(...findPluginDirs(fullPath));
+      }
+    }
+    
+    return plugins;
+  };
+  
+  const pluginPaths = findPluginDirs(pluginsDir);
+  
+  for (const pluginPath of pluginPaths) {
+    const readmePath = path.join(pluginPath, 'readme.md');
     const content = fs.readFileSync(readmePath, 'utf-8');
     
     // Extract YAML frontmatter
@@ -133,20 +154,21 @@ function findPluginsWithOperations(): Array<{
     
     try {
       const config = yaml.parse(match[1]);
+      const pluginName = path.basename(pluginPath);
       
       // Look for operations: block (current format)
       if (config.operations) {
         for (const operationName of Object.keys(config.operations)) {
           // Operation names are in format "entity.operation" (e.g., "task.list")
           results.push({
-            plugin: config.id || dir,
+            plugin: config.id || pluginName,
             tool: operationName,
             entityOperation: operationName,
           });
         }
       }
     } catch (e) {
-      console.warn(`Failed to parse ${dir}/readme.md:`, e);
+      console.warn(`Failed to parse ${pluginPath}/readme.md:`, e);
     }
   }
   

@@ -22,10 +22,34 @@ const getEntityFiles = () => existsSync(ENTITIES_DIR)
   ? readdirSync(ENTITIES_DIR).filter(f => f.endsWith('.yaml') && f !== 'graph.yaml')
   : [];
 
-// Get all plugin directories (excluding .needs-work)
-const getPlugins = () => readdirSync(PLUGINS_DIR, { withFileTypes: true })
-  .filter(d => d.isDirectory() && d.name !== '.needs-work')
-  .map(d => d.name);
+// Recursively find all plugin directories (those with readme.md)
+const getPlugins = (): string[] => {
+  const plugins: string[] = [];
+  
+  const scan = (dir: string, relativePath: string = '') => {
+    if (!existsSync(dir)) return;
+    const entries = readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === '.needs-work' || entry.name === 'node_modules' || entry.name === 'tests') continue;
+      
+      const fullPath = join(dir, entry.name);
+      const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      
+      // Check if this is a plugin (has readme.md)
+      if (existsSync(join(fullPath, 'readme.md'))) {
+        plugins.push(relPath);
+      } else {
+        // Category folder, recurse
+        scan(fullPath, relPath);
+      }
+    }
+  };
+  
+  scan(PLUGINS_DIR);
+  return plugins;
+};
 
 // Parse YAML frontmatter from markdown
 function parseFrontmatter(content: string): Record<string, unknown> | null {

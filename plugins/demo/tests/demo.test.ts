@@ -80,19 +80,4 @@ describe('Demo Plugin', () => {
     });
   });
 
-  // ===========================================================================
-  // Operations (Entity Returns)
-  // ===========================================================================
-  describe('Operations', () => {
-    it('webpage.search - returns webpage[] from DuckDuckGo', async () => {
-      const result = await aos().call('UsePlugin', {
-        plugin,
-        tool: 'webpage.search',
-        params: { query: 'rust programming' },
-      });
-
-      expect(result).toBeDefined();
-      expect(Array.isArray(result)).toBe(true);
-    });
-  });
 });
