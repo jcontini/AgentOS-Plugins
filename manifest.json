@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "updated_at": "2026-01-27T02:47:22.028Z",
+  "updated_at": "2026-01-27T03:02:56.501Z",
   "plugins": [
     {
       "id": "apple-calendar",
@@ -205,6 +205,14 @@
       "name": "Settings",
       "description": "Configure AgentOS preferences, plugins, and credentials",
       "icon": "apps/settings/icon.svg",
+      "version": "1.0.0",
+      "author": "agentos"
+    },
+    {
+      "id": "store",
+      "name": "Store",
+      "description": "Browse and install plugins, apps, themes, and components from the community",
+      "icon": "apps/store/icon.svg",
       "version": "1.0.0",
       "author": "agentos"
     },
