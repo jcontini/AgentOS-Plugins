@@ -3,7 +3,8 @@ id: firecrawl
 name: Firecrawl
 description: Web scraping with browser rendering for JS-heavy sites
 icon: icon.png
-tags: [web, search]
+color: "#FF6B35"
+tags: [web, search, scraping]
 display: browser
 
 website: https://firecrawl.dev

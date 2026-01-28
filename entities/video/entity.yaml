@@ -100,60 +100,49 @@ display:
   image: thumbnail
   icon: play
 
-# Default views for rendering video activities
-# Apps can override these with their own views
-# Note: toolbar is provided by the app (e.g., browser's default_toolbar)
+# Views for rendering video activities
+# Note: Browser provides padding and status bar automatically
 views:
   get:
     title: "{{activity.response.title}}"
     layout:
-      - component: layout/scroll-area
+      - component: layout/stack
+        props:
+          direction: vertical
+          gap: "16px"
         children:
-          - component: layout/stack
+          - component: video-header
             props:
-              direction: vertical
-              gap: "16px"
-            children:
-              - component: media-header
-                props:
-                  thumbnail: "{{activity.response.thumbnail}}"
-                  title: "{{activity.response.title}}"
-                  creator: "{{activity.response.creator_name}}"
-                  creatorUrl: "{{activity.response.creator_url}}"
-                  duration: "{{activity.response.duration_ms}}"
-              - component: text
-                props:
-                  content: "{{activity.response.description}}"
-                  variant: body
-        footer:
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+              thumbnail: "{{activity.response.thumbnail}}"
+              title: "{{activity.response.title}}"
+              url: "{{activity.response.source_url}}"
+              creator: "{{activity.response.creator.name}}"
+              creatorUrl: "{{activity.response.creator.url}}"
+              duration: "{{activity.response.duration_ms}}"
+          - component: markdown
+            props:
+              content: "{{activity.response.description}}"
 
   transcript:
     title: "{{activity.response.title}}"
     layout:
-      - component: layout/scroll-area
+      - component: layout/stack
+        props:
+          direction: vertical
+          gap: "16px"
         children:
-          - component: layout/stack
+          - component: video-header
             props:
-              direction: vertical
-              gap: "16px"
-            children:
-              - component: media-header
-                props:
-                  thumbnail: "{{activity.response.thumbnail}}"
-                  title: "{{activity.response.title}}"
-                  creator: "{{activity.response.creator_name}}"
-                  creatorUrl: "{{activity.response.creator_url}}"
-                  duration: "{{activity.response.duration_ms}}"
-              - component: text
-                props:
-                  content: "Transcript"
-                  variant: caption
-              - component: text
-                props:
-                  content: "{{activity.response.description}}"
-                  variant: body
-        footer:
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+              thumbnail: "{{activity.response.thumbnail}}"
+              title: "{{activity.response.title}}"
+              url: "{{activity.response.source_url}}"
+              creator: "{{activity.response.creator.name}}"
+              creatorUrl: "{{activity.response.creator.url}}"
+              duration: "{{activity.response.duration_ms}}"
+          - component: text
+            props:
+              content: "Transcript"
+              variant: caption
+          - component: markdown
+            props:
+              content: "{{activity.response.transcript}}"

@@ -51,34 +51,24 @@ display:
   icon: globe
 
 # Views for rendering webpage activities
-# Toolbar is provided by the app (e.g., browser's default_toolbar)
+# Note: Browser provides padding and status bar automatically
 views:
   search:
     title: Browser
-    # toolbar: uses app's default_toolbar.search (has query param)
     layout:
       - component: list
         data:
           source: activity
-        item_component: items/search-result
+        item_component: search-result
         item_props:
           title: "{{title}}"
           url: "{{url}}"
           snippet: "{{snippet}}"
-        footer:
-          count: "{{activity.response.length}}"
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+          favicon: "{{favicon}}"
 
   read:
     title: "{{activity.response.title}}"
-    # toolbar: uses app's default_toolbar.url (has url param)
     layout:
-      - component: layout/scroll-area
-        children:
-          - component: markdown
-            props:
-              content: "{{activity.response.content}}"
-        footer:
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+      - component: markdown
+        props:
+          content: "{{activity.response.content}}"

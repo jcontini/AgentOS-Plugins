@@ -11,6 +11,15 @@ website: https://reddit.com
 privacy_url: https://www.reddit.com/policies/privacy-policy
 terms_url: https://www.redditinc.com/policies/user-agreement
 
+sources:
+  images:
+    - styles.redditmedia.com
+    - preview.redd.it
+    - i.redd.it
+    - external-preview.redd.it
+    - a.thumbs.redditmedia.com
+    - b.thumbs.redditmedia.com
+
 instructions: |
   Reddit-specific notes:
   - Uses public JSON endpoints (no auth needed)
@@ -29,15 +38,12 @@ adapters:
       title: .data.title
       content: .data.selftext
       url: ".data.permalink | prepend: 'https://reddit.com'"
-      author:
-        name: .data.author
-        url: ".data.author | prepend: 'https://reddit.com/u/'"
-      community:
-        name: .data.subreddit
-        url: ".data.subreddit | prepend: 'https://reddit.com/r/'"
-      engagement:
-        score: .data.score
-        comment_count: .data.num_comments
+      author.name: .data.author
+      author.url: ".data.author | prepend: 'https://reddit.com/u/'"
+      community.name: .data.subreddit
+      community.url: ".data.subreddit | prepend: 'https://reddit.com/r/'"
+      engagement.score: .data.score
+      engagement.comment_count: .data.num_comments
       published_at: ".data.created_utc | from_unix"
   
   group:
@@ -47,6 +53,7 @@ adapters:
       name: .data.display_name
       description: .data.public_description
       url: ".data.display_name | prepend: 'https://reddit.com/r/'"
+      icon: .data.community_icon
       member_count: .data.subscribers
       member_count_numeric: .data.subscribers
       privacy: "OPEN"
@@ -125,9 +132,27 @@ operations:
           name: .display_name
           description: .public_description
           url: ".display_name | prepend: 'https://reddit.com/r/'"
+          icon: .community_icon
           member_count: .subscribers
           member_count_numeric: .subscribers
           privacy: "OPEN"
+
+  group.search:
+    description: Search for subreddits (communities)
+    returns: group[]
+    params:
+      query: { type: string, required: true, description: "Search query" }
+      limit: { type: integer, default: 10, description: "Number of results (max 100)" }
+    rest:
+      method: GET
+      url: https://www.reddit.com/subreddits/search.json
+      headers:
+        User-Agent: "AgentOS/1.0"
+      query:
+        q: "{{params.query}}"
+        limit: "{{params.limit | default:10}}"
+      response:
+        root: "/data/children"
 ---
 
 # Reddit
@@ -144,7 +169,9 @@ Reddit exposes a public JSON API by simply appending `.json` to any URL:
 - `reddit.com/r/programming.json` → subreddit posts
 - `reddit.com/r/programming/new.json` → new posts
 - `reddit.com/comments/{id}.json` → post with comments
-- `reddit.com/search.json?q=query` → search results
+- `reddit.com/search.json?q=query` → post search results
+- `reddit.com/subreddits/search.json?q=query` → subreddit search results
+- `reddit.com/r/{subreddit}/about.json` → subreddit metadata
 
 No authentication required, just a custom User-Agent header to avoid rate limiting.
 
@@ -160,6 +187,8 @@ No authentication required, just a custom User-Agent header to avoid rate limiti
 | `post.search` | Search posts across all of Reddit |
 | `post.list` | List posts from a specific subreddit |
 | `post.get` | Get a single post with comments |
+| `group.search` | Search for subreddits (communities) |
+| `group.get` | Get metadata for a specific subreddit |
 
 ## Examples
 
@@ -184,4 +213,10 @@ POST /api/plugins/reddit/post.list
 
 POST /api/plugins/reddit/post.get
 {"id": "1abc234"}
+
+# Search for subreddits
+GET /api/groups/search?query=rust
+
+# Get subreddit info
+GET /api/groups/programming
 ```

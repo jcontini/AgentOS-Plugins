@@ -16,8 +16,8 @@ requires:
 # External sources this plugin needs (for CSP)
 sources:
   images:
-    - "https://i.ytimg.com/*"      # Video thumbnails
-    - "https://yt3.ggpht.com/*"    # Channel avatars
+    - i.ytimg.com          # Video thumbnails
+    - yt3.ggpht.com        # Channel avatars
 
 adapters:
   video:

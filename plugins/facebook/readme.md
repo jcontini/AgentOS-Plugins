@@ -37,6 +37,7 @@ adapters:
       name: .name
       description: .description
       url: .url
+      icon: .icon
       member_count: .member_count_raw
       member_count_numeric: .member_count_numeric
       privacy: .privacy
@@ -94,6 +95,9 @@ operations:
           # Extract og:description
           DESCRIPTION=$(echo "$HTML" | grep -oE '<meta[^>]*property="og:description"[^>]*content="([^"]+)"' | sed -E 's/.*content="([^"]+)".*/\1/' || echo "")
           
+          # Extract og:image (group cover/icon)
+          OG_IMAGE=$(echo "$HTML" | grep -oE '<meta[^>]*property="og:image"[^>]*content="([^"]+)"' | sed -E 's/.*content="([^"]+)".*/\1/' || echo "")
+          
           # Step 2: Get member count with Chromium (if requested and available)
           MEMBER_COUNT_RAW=""
           MEMBER_COUNT_NUMERIC=""
@@ -148,6 +152,7 @@ operations:
             --arg name "$TITLE" \
             --arg description "$DESCRIPTION" \
             --arg url "$GROUP_URL" \
+            --arg icon "$OG_IMAGE" \
             --arg member_count_raw "$MEMBER_COUNT_RAW" \
             --argjson member_count_numeric "${MEMBER_COUNT_NUMERIC:-null}" \
             --arg privacy "$PRIVACY" \
@@ -156,6 +161,7 @@ operations:
               name: $name,
               description: $description,
               url: $url,
+              icon: $icon,
               member_count_raw: $member_count_raw,
               member_count_numeric: $member_count_numeric,
               privacy: $privacy

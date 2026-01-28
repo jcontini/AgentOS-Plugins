@@ -120,6 +120,7 @@ display:
   icon: message-square
 
 # Views for rendering post activities
+# Note: Browser provides padding and status bar automatically
 views:
   # List view - shows post.list and post.search results
   list:
@@ -139,10 +140,6 @@ views:
           commentCount: "{{engagement.comment_count}}"
           url: "{{url}}"
           publishedAt: "{{published_at}}"
-        footer:
-          count: "{{activity.response.length}}"
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
 
   search:
     title: "Search Results"
@@ -161,43 +158,31 @@ views:
           commentCount: "{{engagement.comment_count}}"
           url: "{{url}}"
           publishedAt: "{{published_at}}"
-        footer:
-          count: "{{activity.response.length}}"
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
 
   # Single post view with nested replies
   get:
     title: "{{activity.response.title}}"
     layout:
-      - component: layout/scroll-area
+      - component: layout/stack
+        props:
+          direction: vertical
+          gap: "16px"
         children:
-          - component: layout/stack
+          - component: post-header
             props:
-              direction: vertical
-              gap: "16px"
-            children:
-              # Post header
-              - component: post-header
-                props:
-                  title: "{{activity.response.title}}"
-                  author: "{{activity.response.author.name}}"
-                  authorUrl: "{{activity.response.author.url}}"
-                  community: "{{activity.response.community.name}}"
-                  communityUrl: "{{activity.response.community.url}}"
-                  score: "{{activity.response.engagement.score}}"
-                  commentCount: "{{activity.response.engagement.comment_count}}"
-                  publishedAt: "{{activity.response.published_at}}"
-              # Post content
-              - component: text
-                props:
-                  content: "{{activity.response.content}}"
-                  variant: body
-              # Nested replies
-              - component: comment-thread
-                props:
-                  replies: "{{activity.response.replies}}"
-                  hasMore: "{{activity.response.has_more_replies}}"
-        footer:
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+              title: "{{activity.response.title}}"
+              author: "{{activity.response.author.name}}"
+              authorUrl: "{{activity.response.author.url}}"
+              community: "{{activity.response.community.name}}"
+              communityUrl: "{{activity.response.community.url}}"
+              score: "{{activity.response.engagement.score}}"
+              commentCount: "{{activity.response.engagement.comment_count}}"
+              publishedAt: "{{activity.response.published_at}}"
+          - component: text
+            props:
+              content: "{{activity.response.content}}"
+              variant: body
+          - component: comment-thread
+            props:
+              replies: "{{activity.response.replies}}"
+              hasMore: "{{activity.response.has_more_replies}}"

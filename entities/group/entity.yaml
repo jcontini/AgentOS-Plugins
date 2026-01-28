@@ -34,6 +34,11 @@ properties:
     required: true
     description: Group URL
 
+  icon:
+    type: string
+    format: url
+    description: Group icon/avatar URL (subreddit icon, group image, etc.)
+
   member_count:
     type: string
     description: Member count as string (e.g., "2.3K", "78,000")
@@ -66,6 +71,7 @@ display:
   icon: users
 
 # Views for rendering group activities
+# Note: Browser provides padding and status bar automatically
 views:
   # List view - shows group.list and group.search results
   list:
@@ -79,14 +85,11 @@ views:
           id: "{{id}}"
           name: "{{name}}"
           description: "{{description}}"
+          icon: "{{icon}}"
           memberCount: "{{member_count}}"
           memberCountNumeric: "{{member_count_numeric}}"
           privacy: "{{privacy}}"
           url: "{{url}}"
-        footer:
-          count: "{{activity.response.length}}"
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
 
   search:
     title: "Search Results"
@@ -99,35 +102,27 @@ views:
           id: "{{id}}"
           name: "{{name}}"
           description: "{{description}}"
+          icon: "{{icon}}"
           memberCount: "{{member_count}}"
           memberCountNumeric: "{{member_count_numeric}}"
           privacy: "{{privacy}}"
           url: "{{url}}"
-        footer:
-          count: "{{activity.response.length}}"
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
 
   # Single group view
   get:
     title: "{{activity.response.name}}"
     layout:
-      - component: layout/scroll-area
+      - component: layout/stack
+        props:
+          direction: vertical
+          gap: "16px"
         children:
-          - component: layout/stack
+          - component: group-header
             props:
-              direction: vertical
-              gap: "16px"
-            children:
-              # Group header
-              - component: group-header
-                props:
-                  name: "{{activity.response.name}}"
-                  description: "{{activity.response.description}}"
-                  memberCount: "{{activity.response.member_count}}"
-                  memberCountNumeric: "{{activity.response.member_count_numeric}}"
-                  privacy: "{{activity.response.privacy}}"
-                  url: "{{activity.response.url}}"
-        footer:
-          source: "{{activity.plugin}}"
-          duration: "{{activity.duration_ms}}"
+              name: "{{activity.response.name}}"
+              description: "{{activity.response.description}}"
+              icon: "{{activity.response.icon}}"
+              memberCount: "{{activity.response.member_count}}"
+              memberCountNumeric: "{{activity.response.member_count_numeric}}"
+              privacy: "{{activity.response.privacy}}"
+              url: "{{activity.response.url}}"
