@@ -9,7 +9,6 @@ export default defineConfig({
     include: [
       'tests/plugins/schema.test.ts',
       'tests/entities/schema.test.ts',
-      'tests/entities/graph.test.ts',
     ],
     
     // No setup file - schema tests don't need MCP

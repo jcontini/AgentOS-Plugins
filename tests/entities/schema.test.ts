@@ -16,7 +16,7 @@ const INTEGRATIONS_ROOT = join(__dirname, '../..');
 const ENTITIES_DIR = join(INTEGRATIONS_ROOT, 'entities');
 
 // Files to exclude from entity validation (not entity definitions)
-const EXCLUDE_FILES = ['graph.yaml', 'operations.yaml'];
+const EXCLUDE_FILES = ['operations.yaml'];
 
 // Recursively get all entity YAML files
 const getEntityFiles = (dir: string = ENTITIES_DIR): string[] => {
